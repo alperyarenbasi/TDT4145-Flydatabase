@@ -154,7 +154,7 @@ CREATE TABLE Medlem (
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
-
+-- 12) FLYRUTE
 CREATE TABLE Flyrute (
     flyRuteNr           INTEGER       NOT NULL,
     ukedagsKode         TEXT          NOT NULL,
@@ -183,7 +183,7 @@ CREATE TABLE Flyrute (
 );
 
 
-
+-- 13) DELREISE
 CREATE TABLE Delreise (
     flyRuteNr            INT          NOT NULL,
     delreiseNr           INT          NOT NULL,
@@ -278,7 +278,7 @@ CREATE TABLE FlyvningSegment (
 
 
 
--- 17) BILLETTKJOP
+-- 16) BILLETTKJOP
 CREATE TABLE BillettKjop (
     referanseNr    INT        NOT NULL,
     innsjekkTid    DATETIME   NULL,
@@ -292,7 +292,7 @@ CREATE TABLE BillettKjop (
         ON DELETE RESTRICT
 );
 
--- 18) DELBILLETT
+-- 17) DELBILLETT
 CREATE TABLE DelBillett (
     billettID             INT           NOT NULL,
     billettPrisKategori   VARCHAR(20)  NOT NULL,  -- 'okonomi','premium','budsjett'
@@ -338,7 +338,7 @@ CREATE TABLE DelBillett (
 );
 
 
--- 19) BAGASJE
+-- 18) BAGASJE
 CREATE TABLE Bagasje (
     bagasjeTagNr    INT         NOT NULL,
     vekt            DECIMAL(5,2)NOT NULL,
@@ -353,7 +353,7 @@ CREATE TABLE Bagasje (
         ON DELETE CASCADE
 );
 
--- 20) NASJONALITET (for Flyprodusent)
+-- 19) NASJONALITET (for Flyprodusent)
 CREATE TABLE Nasjonalitet (
     produsentNavn  VARCHAR(100) NOT NULL,
     nasjonalitet   VARCHAR(50)  NOT NULL,
