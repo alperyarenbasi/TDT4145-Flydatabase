@@ -44,7 +44,6 @@ CREATE TABLE Sete (
     radNr          INT          NOT NULL,
     seteBokstav    VARCHAR(1)   NOT NULL,
     nodutgang      BOOLEAN      NOT NULL, 
-       -- Alternativ: CHECK (nodutgang IN ('TRUE','FALSE')) om DB ikke støtter BOOLEAN
     CONSTRAINT PK_Sete
         PRIMARY KEY (flyTypeNavn, radNr, seteBokstav),
     CONSTRAINT CK_SeteBokstav
@@ -96,11 +95,10 @@ CREATE TABLE Fly (
         ON DELETE RESTRICT
 );
 
--- 8) RUTETIL
+-- 8) RUTETIL : "Oversikt over hvilke flyplasser det er direkte forbindelser mellom"
 CREATE TABLE RuteTil (
     fraFlyplassKode  VARCHAR(10) NOT NULL,
     tilFlyplassKode  VARCHAR(10) NOT NULL,
-    -- Evt. tilleggsdata om ruten
     CONSTRAINT PK_RuteTil
         PRIMARY KEY (fraFlyplassKode, tilFlyplassKode),
     CONSTRAINT FK_RuteTil_Flyplass_Fra
@@ -157,37 +155,35 @@ CREATE TABLE Medlem (
         ON DELETE CASCADE
 );
 
--- 12) FLYRUTE
 CREATE TABLE Flyrute (
-    flyRuteNr         INT            NOT NULL,
-    ukedagsKode       INT            NOT NULL,     -- For eksempel 1=Mandag,2=Tirsdag,...
-    oppstartsDato     DATE           NOT NULL,
-    sluttDato         DATE           NULL,
-    startFlyplassKode VARCHAR(10)    NOT NULL,
-    endeFlyplassKode  VARCHAR(10)    NOT NULL,
-    opereresAvFlySelskap  INT       NOT NULL,
-    bruktFlyType      VARCHAR(100)   NOT NULL,
+    flyRuteNr           INTEGER       NOT NULL,
+    ukedagsKode         TEXT          NOT NULL,
+    oppstartsDato       DATE          NOT NULL,
+    sluttDato           DATE          NULL,
+    startFlyplassKode   TEXT          NOT NULL,
+    endeFlyplassKode    TEXT          NOT NULL,
+    opereresAvFlySelskap INTEGER      NOT NULL,
+    bruktFlyType        TEXT          NOT NULL,
+    
     CONSTRAINT PK_Flyrute
         PRIMARY KEY (flyRuteNr),
+
+    -- Sjekk at oppstartsDato er før eller lik sluttDato (dersom sluttDato er angitt)
+    CONSTRAINT CK_Flyrute_Dato
+        CHECK (sluttDato IS NULL OR oppstartsDato <= sluttDato),
+
     CONSTRAINT FK_Flyrute_Flyplass_Start
-        FOREIGN KEY (startFlyplassKode) REFERENCES Flyplass(flyPlassKode)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        FOREIGN KEY (startFlyplassKode) REFERENCES Flyplass(flyPlassKode),
     CONSTRAINT FK_Flyrute_Flyplass_Slutt
-        FOREIGN KEY (endeFlyplassKode) REFERENCES Flyplass(flyPlassKode)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        FOREIGN KEY (endeFlyplassKode) REFERENCES Flyplass(flyPlassKode),
     CONSTRAINT FK_Flyrute_Flyselskap
-        FOREIGN KEY (opereresAvFlySelskap) REFERENCES Flyselskap(flyselskapID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        FOREIGN KEY (opereresAvFlySelskap) REFERENCES Flyselskap(flyselskapID),
     CONSTRAINT FK_Flyrute_Flytype
         FOREIGN KEY (bruktFlyType) REFERENCES Flytype(flytypeNavn)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT
 );
 
--- 13) DELREISE
+
+
 CREATE TABLE Delreise (
     flyRuteNr            INT          NOT NULL,
     delreiseNr           INT          NOT NULL,
@@ -208,15 +204,36 @@ CREATE TABLE Delreise (
     CONSTRAINT FK_Delreise_Flyplass_Slutt
         FOREIGN KEY (delSluttFlyplassKode) REFERENCES Flyplass(flyPlassKode)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        ON DELETE RESTRICT,
+    CONSTRAINT FK_Delreise_RuteTil
+        FOREIGN KEY (delStartFlyplassKode, delSluttFlyplassKode)
+        REFERENCES RuteTil(fraFlyplassKode, tilFlyplassKode)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    CONSTRAINT CK_Delreise_Tid
+        CHECK (ankomsttid > avgangstid)
 );
+
+-- Trigger som setter delreiseNr automatisk per flyRuteNr: https://www.geeksforgeeks.org/sqlite-triggers/ and bit help from chat here
+CREATE TRIGGER trg_set_delreiseNr
+BEFORE INSERT ON Delreise
+FOR EACH ROW
+WHEN NEW.delreiseNr IS NULL OR NEW.delreiseNr = 0
+BEGIN
+    SELECT 
+       COALESCE((SELECT MAX(delreiseNr) FROM Delreise WHERE flyRuteNr = NEW.flyRuteNr), 0) + 1
+       INTO NEW.delreiseNr;
+END;
+
+
+
 
 -- 14) FAKTISKSFLYVNING
 CREATE TABLE FaktiskFlyvning (
     flyrutenummer INT         NOT NULL,
     lopenr        INT         NOT NULL,
     dato          DATE        NOT NULL,
-    status        VARCHAR(10) NOT NULL,
+    flyStatus        VARCHAR(10) NOT NULL,
     bruktFly      VARCHAR(50) NOT NULL,
     CONSTRAINT PK_FaktiskFlyvning
         PRIMARY KEY (flyrutenummer, lopenr),
@@ -229,7 +246,7 @@ CREATE TABLE FaktiskFlyvning (
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
     CONSTRAINT CK_FaktiskFlyvning_Status
-        CHECK (status IN ('planned','active','complete','cancelled'))
+        CHECK (flyStatus IN ('planned','active','complete','cancelled'))
 );
 
 -- 15) FLYVNINGSEGMENT
@@ -251,26 +268,15 @@ CREATE TABLE FlyvningSegment (
         FOREIGN KEY (flyrutenummer, delreiseNr)
         REFERENCES Delreise(flyRuteNr, delreiseNr)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT CK_FlyvningSegment_Tid
+        CHECK (faktiskAnkomstTid > faktiskAvgangTid),
+    -- Thet have to be alike
+    CONSTRAINT CK_FlyvningSegment_SegmentNr
+        CHECK (flyvningsegmentnr = delreiseNr)
 );
 
--- 16) PRISLISTE
---  For enkelhet: antar at tilhorerSegment peker på (flyvningsegmentnr) alene.
---  Men reelt sett trenger man trolig (flyrutenummer, lopenr, flyvningsegmentnr)
-CREATE TABLE PrisListe (
-    tilhorerSegment  INT        NOT NULL,
-    gyldigFraDato    DATE       NOT NULL,
-    premiumPris      DECIMAL(8,2) NOT NULL,
-    budsjettPris     DECIMAL(8,2) NOT NULL,
-    okonomiPris      DECIMAL(8,2) NOT NULL,
-    CONSTRAINT PK_PrisListe
-        PRIMARY KEY (tilhorerSegment, gyldigFraDato),
-    CONSTRAINT FK_PrisListe_FlyvningSegment
-        FOREIGN KEY (tilhorerSegment) 
-        REFERENCES FlyvningSegment(flyvningsegmentnr)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-);
+
 
 -- 17) BILLETTKJOP
 CREATE TABLE BillettKjop (
@@ -287,36 +293,50 @@ CREATE TABLE BillettKjop (
 );
 
 -- 18) DELBILLETT
---   Anntar: primærnøkkel er en egen billettID (f.eks. serial)
---   biletPris peker på PrisListe. Reelt sett trengs hele (tilhorerSegment, gyldigFraDato).
 CREATE TABLE DelBillett (
-    billettID         INT          NOT NULL,
-    billettType       VARCHAR(20)  NOT NULL,
-    innsjekketTid     DATETIME     NULL,
-    booketSete        VARCHAR(100) NOT NULL,  -- Egentlig (flyTypeNavn, radNr, seteBokstav), men forenklet
-    billetPris        INT          NOT NULL,  -- Forenklet: peker på PrisListe(tilhorerSegment) i eksempelet
-    flyvningSegmentNr INT          NOT NULL,  -- Forenklet: kolonne for segment
-    delAvBilletKjop   INT          NOT NULL,  -- Forenklet: referanseNr
+    billettID             INT           NOT NULL,
+    billettPrisKategori   VARCHAR(20)  NOT NULL,  -- 'okonomi','premium','budsjett'
+    innsjekketTid         DATETIME     NULL,
+    dato                  DATE         NOT NULL,
+    delPris               DECIMAL(8,2) NOT NULL,
+    delAvBilletKjop       INT          NOT NULL,
+    BooketflyTypeNavn     VARCHAR(50)  NOT NULL,
+    BooketradNr           INT          NOT NULL,
+    Booketsetebokstav     VARCHAR(1)   NOT NULL,
+    Flyrutenummer         INT          NOT NULL,
+    lopenr                INT          NOT NULL,
+    flyvningsegmentnr     INT          NOT NULL,
+
+    -- Primærnøkkel
     CONSTRAINT PK_DelBillett
         PRIMARY KEY (billettID),
-    CONSTRAINT CK_DelBillett_billettType
-        CHECK (billettType IN ('okonomi','premium','budsjett')),
-    CONSTRAINT FK_DelBillett_PrisListe
-        FOREIGN KEY (billetPris) 
-        REFERENCES PrisListe(tilhorerSegment)
+
+    -- Begrensning: billettPrisKategori kan kun være en av disse verdiene
+    CONSTRAINT CK_DelBillett_Kategori
+        CHECK (billettPrisKategori IN ('okonomi','premium','budsjett')),
+
+    -- Fremmednøkkel: BooketflyTypeNavn, BooketradNr, Booketsetebokstav → Sete
+    CONSTRAINT FK_DelBillett_Sete
+        FOREIGN KEY (BooketflyTypeNavn, BooketradNr, Booketsetebokstav)
+        REFERENCES Sete(flyTypeNavn, radNr, seteBokstav)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
+
+    -- Fremmednøkkel: Flyrutenummer, lopenr, flyvningsegmentnr → FlyvningSegment
     CONSTRAINT FK_DelBillett_FlyvningSegment
-        FOREIGN KEY (flyvningSegmentNr) 
-        REFERENCES FlyvningSegment(flyvningsegmentnr)
+        FOREIGN KEY (Flyrutenummer, lopenr, flyvningsegmentnr)
+        REFERENCES FlyvningSegment(flyrutenummer, lopenr, flyvningsegmentnr)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
+
+    -- Fremmednøkkel til BillettKjop (knytte delbilletten til et kjøp)
     CONSTRAINT FK_DelBillett_BillettKjop
-        FOREIGN KEY (delAvBilletKjop) 
+        FOREIGN KEY (delAvBilletKjop)
         REFERENCES BillettKjop(referanseNr)
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
+
 
 -- 19) BAGASJE
 CREATE TABLE Bagasje (
