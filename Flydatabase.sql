@@ -292,13 +292,12 @@ CREATE TABLE BillettKjop (
         ON DELETE RESTRICT
 );
 
--- 17) DELBILLETT
+
+
+-- 17) DELBILLETT (oppdatert)
 CREATE TABLE DelBillett (
     billettID             INT           NOT NULL,
-    billettPrisKategori   VARCHAR(20)  NOT NULL,  -- 'okonomi','premium','budsjett'
-    innsjekketTid         DATETIME     NULL,
-    dato                  DATE         NOT NULL,
-    delPris               DECIMAL(8,2) NOT NULL,
+    delPris               DECIMAL(8,2) NOT NULL,               -- Refereres fra PrisListe
     delAvBilletKjop       INT          NOT NULL,
     BooketflyTypeNavn     VARCHAR(50)  NOT NULL,
     BooketradNr           INT          NOT NULL,
@@ -306,14 +305,11 @@ CREATE TABLE DelBillett (
     Flyrutenummer         INT          NOT NULL,
     lopenr                INT          NOT NULL,
     flyvningsegmentnr     INT          NOT NULL,
+    prisID                INT          NOT NULL,               -- Referanse til PrisListe
 
     -- Primærnøkkel
     CONSTRAINT PK_DelBillett
         PRIMARY KEY (billettID),
-
-    -- Begrensning: billettPrisKategori kan kun være en av disse verdiene
-    CONSTRAINT CK_DelBillett_Kategori
-        CHECK (billettPrisKategori IN ('okonomi','premium','budsjett')),
 
     -- Fremmednøkkel: BooketflyTypeNavn, BooketradNr, Booketsetebokstav → Sete
     CONSTRAINT FK_DelBillett_Sete
@@ -335,6 +331,13 @@ CREATE TABLE DelBillett (
         REFERENCES BillettKjop(referanseNr)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
+
+    -- Fremmednøkkel: prisID → PrisListe
+    CONSTRAINT FK_DelBillett_Pris
+        FOREIGN KEY (prisID)
+        REFERENCES PrisListe(prisID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
 
     -- Sjekk at flyvningens status er 'planned' før delbillett kan bestilles
     CONSTRAINT CK_DelBillett_FlyvningStatus
@@ -359,7 +362,6 @@ CREATE TABLE DelBillett (
               AND db.Booketsetebokstav = DelBillett.Booketsetebokstav
         ))
 );
-
 
 
 -- 18) BAGASJE
@@ -387,4 +389,30 @@ CREATE TABLE Nasjonalitet (
         FOREIGN KEY (produsentNavn) REFERENCES Flyprodusent(produsentNavn)
         ON UPDATE CASCADE
         ON DELETE CASCADE
+);
+
+
+-- NY TABELL FOR Å SPITTE UT PRISINFORMASJON 
+-- 18) PRISLISTE
+CREATE TABLE PrisListe (
+    prisID            INT           NOT NULL AUTO_INCREMENT,  -- Prisens unike ID
+    priskategori      VARCHAR(20)   NOT NULL,                  -- Kategori som 'okonomi', 'premium', 'budsjett'
+    pris              DECIMAL(8,2)  NOT NULL,                  -- Pris for billetten
+    gyldigfraDato     DATE          NOT NULL,                  -- Startdato for når prisen er gyldig
+    flyrutenummer     INT           NOT NULL,                  -- Flyrutenummeret prisen gjelder for
+    
+    -- Primærnøkkel
+    CONSTRAINT PK_PrisListe
+        PRIMARY KEY (prisID),
+
+    -- Sjekk at priskategori er gyldig
+    CONSTRAINT CK_PrisListe_Kategori
+        CHECK (priskategori IN ('okonomi', 'premium', 'budsjett')),
+
+    -- Fremmednøkkel: Flyrutenummer → Flyrute
+    CONSTRAINT FK_PrisListe_Flyrute
+        FOREIGN KEY (flyrutenummer)
+        REFERENCES Flyrute(flyrutenummer)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
 );
