@@ -1,0 +1,7 @@
+ENDRINGSLOGG:
+
+1. Oprette PrisListe klasse for å sørge for at alle klasser er i 4NF og gjøre det lettere å tilfredstille brukerhistorier 
+2. Constraints i delbillett er oppdatert slik man kan kun kjøpe billett på fly som har status planned 
+3. Constraints i delbillett er oppdater slik at to delbilletter på samme flyvningssegment ikke kan ha samme sete (Samme sete kan ikke bestilles på ganger på samme flyvning)
+4. Trigger funksjoner har blitt fjernet til fordel for manuell implementering 
+
