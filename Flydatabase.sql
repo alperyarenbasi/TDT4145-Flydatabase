@@ -6,6 +6,7 @@ CREATE TABLE Flyplass (
         PRIMARY KEY (flyPlassKode)
 );
 
+
 -- 2) FLYSELSKAP
 CREATE TABLE Flyselskap (
     flyselskapID      INT          NOT NULL,
@@ -364,3 +365,64 @@ CREATE TABLE Nasjonalitet (
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
+
+INSERT INTO Flyplass (flyPlassKode, flyPlassNavn) VALUES
+('BOO', 'Bodø Lufthavn'),
+('BGO', 'Bergen lufthavn, Flesland'),
+('OSL', 'Oslo lufthavn, Gardermoen'),
+('SVG', 'Stavanger lufthavn, Sola'),
+('TRD', 'Trondheim lufthavn, Værnes');
+
+INSERT INTO Flyselskap (flyselskapID, navn) VALUES
+(1, 'Norwegian'),
+(2, 'SAS'),
+(3, 'Widerøe');
+
+INSERT INTO Flytype (flytypeNavn, forsteProduksjonAAr, sisteProduksjonAAr, antallRader, FlytypeProdusent) VALUES
+('Boeing 737 800', 1997, 2020, 31, 'The Boeing Company'),
+('Airbus a320neo', 2016, NULL, 30, 'Airbus Group'),
+('Dash-8 100', 1984, 2005, 10, 'De Havilland Canada');
+
+-- Norwegian (Boeing 737 800)
+INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
+('LN-ENU', NULL, 2015, '42069', 1, 'The Boeing Company', 'Boeing 737 800'),
+('LN-ENR', 'Jan Bålsrud', 2018, '42093', 1, 'The Boeing Company', 'Boeing 737 800'),
+('LN-NIQ', 'Max Manus', 2011, '39403', 1, 'The Boeing Company', 'Boeing 737 800'),
+('LN-ENS', NULL, 2017, '42281', 1, 'The Boeing Company', 'Boeing 737 800');
+
+-- SAS (Airbus a320neo)
+INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
+('SE-RUB', 'Birger Viking', 2020, '9518', 2, 'Airbus Group', 'Airbus a320neo'),
+('SE-DIR', 'Nora Viking', 2023, '11421', 2, 'Airbus Group', 'Airbus a320neo'),
+('SE-RUP', 'Ragnhild Viking', 2024, '12066', 2, 'Airbus Group', 'Airbus a320neo'),
+('SE-RZE', 'Ebbe Viking', 2024, '12166', 2, 'Airbus Group', 'Airbus a320neo');
+
+-- Widerøe (Dash-8 100)
+INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
+('LN-WIH', 'Oslo', 1994, '383', 3, 'De Havilland Canada', 'Dash-8 100'),
+('LN-WIA', 'Nordland', 1993, '359', 3, 'De Havilland Canada', 'Dash-8 100'),
+('LN-WIL', 'Narvik', 1995, '298', 3, 'De Havilland Canada', 'Dash-8 100');
+
+INSERT INTO Flyrute (flyRuteNr, ukedagsKode, oppstartsDato, sluttDato, startFlyplassKode, endeFlyplassKode, opereresAvFlySelskap, bruktFlyType) VALUES
+(1311, '12345', '2024-01-01', NULL, 'TRD', 'BOO', 3, 'Dash-8 100'), -- WF1311
+(1302, '12345', '2024-01-01', NULL, 'BOO', 'TRD', 3, 'Dash-8 100'), -- WF1302
+(753, '1234567', '2024-01-01', NULL, 'TRD', 'OSL', 1, 'Boeing 737 800'), -- DY753
+(332, '1234567', '2024-01-01', NULL, 'OSL', 'TRD', 2, 'Airbus a320neo'), -- SK332
+(888, '12345', '2024-01-01', NULL, 'TRD', 'SVG', 2, 'Airbus a320neo'); -- SK888 (TRD-BGO-SVG)
+
+/* insert av pris*/
+
+INSERT INTO FaktiskFlyvning (flyrutenummer, lopenr, dato, flyStatus, bruktFly) VALUES
+(1302, 1, '2025-04-01', 'planned', 'LN-WIH'),  -- WF1302 (BOO-TRD) med Dash-8 100
+(753, 1, '2025-04-01', 'planned', 'LN-ENU'),  -- DY753 (TRD-OSL) med Boeing 737 800
+(888, 1, '2025-04-01', 'planned', 'SE-RUB');  -- SK888 (TRD-BGO-SVG) med Airbus a320neo
+
+SELECT 
+    f.navn AS flyselskap, 
+    ft.flytypeNavn AS flytype, 
+    COUNT(fly.regnr) AS antall_fly
+FROM Flyselskap f
+JOIN Fly fly ON f.flyselskapID = fly.tilhorerSelskapID
+JOIN Flytype ft ON fly.erType = ft.flytypeNavn
+GROUP BY f.navn, ft.flytypeNavn
+ORDER BY f.navn, antall_fly DESC;
