@@ -154,6 +154,7 @@ CREATE TABLE Medlem (
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
+
 -- 12) FLYRUTE
 CREATE TABLE Flyrute (
     flyRuteNr           INTEGER       NOT NULL,
@@ -224,7 +225,6 @@ BEGIN
        COALESCE((SELECT MAX(delreiseNr) FROM Delreise WHERE flyRuteNr = NEW.flyRuteNr), 0) + 1
        INTO NEW.delreiseNr;
 END;
-
 
 
 
@@ -334,8 +334,32 @@ CREATE TABLE DelBillett (
         FOREIGN KEY (delAvBilletKjop)
         REFERENCES BillettKjop(referanseNr)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+
+    -- Sjekk at flyvningens status er 'planned' før delbillett kan bestilles
+    CONSTRAINT CK_DelBillett_FlyvningStatus
+        CHECK (EXISTS (
+            SELECT 1
+            FROM FaktiskFlyvning
+            WHERE FaktiskFlyvning.flyrutenummer = DelBillett.Flyrutenummer
+              AND FaktiskFlyvning.lopenr = DelBillett.lopenr
+              AND FaktiskFlyvning.flyStatus = 'planned'
+        )),
+
+    -- Sjekk at samme sete ikke kan bestilles på samme flyvning
+    CONSTRAINT CK_DelBillett_UnikeSeter
+        CHECK (NOT EXISTS (
+            SELECT 1
+            FROM DelBillett AS db
+            WHERE db.Flyrutenummer = DelBillett.Flyrutenummer
+              AND db.lopenr = DelBillett.lopenr
+              AND db.flyvningsegmentnr = DelBillett.flyvningsegmentnr
+              AND db.BooketflyTypeNavn = DelBillett.BooketflyTypeNavn
+              AND db.BooketradNr = DelBillett.BooketradNr
+              AND db.Booketsetebokstav = DelBillett.Booketsetebokstav
+        ))
 );
+
 
 
 -- 18) BAGASJE
