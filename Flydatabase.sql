@@ -1,3 +1,24 @@
+DROP TABLE IF EXISTS Flyplass;
+DROP TABLE IF EXISTS Flyselskap;
+DROP TABLE IF EXISTS Flyprodusent;
+DROP TABLE IF EXISTS Flytype;
+DROP TABLE IF EXISTS Sete;
+DROP TABLE IF EXISTS BenytterType;
+DROP TABLE IF EXISTS Fly;
+DROP TABLE IF EXISTS RuteTil;
+DROP TABLE IF EXISTS Kunde;
+DROP TABLE IF EXISTS FordelsProgram;
+DROP TABLE IF EXISTS Medlem;
+DROP TABLE IF EXISTS Flyrute;
+DROP TABLE IF EXISTS Delreise;
+DROP TABLE IF EXISTS FaktiskFlyvning;
+DROP TABLE IF EXISTS FlyvningSegment;
+DROP TABLE IF EXISTS BillettKjop;
+DROP TABLE IF EXISTS DelBillett;
+DROP TABLE IF EXISTS Bagasje;
+DROP TABLE IF EXISTS Nasjonalitet;
+DROP TABLE IF EXISTS PrisListe;
+
 -- 1) FLYPLASS
 CREATE TABLE Flyplass (
     flyPlassKode      VARCHAR(10)  NOT NULL,
@@ -73,7 +94,7 @@ CREATE TABLE BenytterType (
 -- 7) FLY
 CREATE TABLE Fly (
     regnr              VARCHAR(50)  NOT NULL,
-    navn               VARCHAR(100) NOT NULL,
+    navn               VARCHAR(100) NULL,
     aarDrift           INT          NOT NULL,
     serienr            VARCHAR(50)  NOT NULL,
     tilhorerSelskapID  INT          NOT NULL,
@@ -215,17 +236,6 @@ CREATE TABLE Delreise (
         CHECK (ankomsttid > avgangstid)
 );
 
--- Trigger som setter delreiseNr automatisk per flyRuteNr: https://www.geeksforgeeks.org/sqlite-triggers/ and bit help from chat here
-CREATE TRIGGER trg_set_delreiseNr
-BEFORE INSERT ON Delreise
-FOR EACH ROW
-WHEN NEW.delreiseNr IS NULL OR NEW.delreiseNr = 0
-BEGIN
-    SELECT 
-       COALESCE((SELECT MAX(delreiseNr) FROM Delreise WHERE flyRuteNr = NEW.flyRuteNr), 0) + 1
-       INTO NEW.delreiseNr;
-END;
-
 
 
 -- 14) FAKTISKSFLYVNING
@@ -292,73 +302,85 @@ CREATE TABLE BillettKjop (
         ON DELETE RESTRICT
 );
 
--- 17) DELBILLETT
+
+-- 17) DELBILLETT (oppdatert)
 CREATE TABLE DelBillett (
     billettID             INT           NOT NULL,
-    billettPrisKategori   VARCHAR(20)  NOT NULL,  -- 'okonomi','premium','budsjett'
-    innsjekketTid         DATETIME     NULL,
-    dato                  DATE         NOT NULL,
-    delPris               DECIMAL(8,2) NOT NULL,
-    delAvBilletKjop       INT          NOT NULL,
-    BooketflyTypeNavn     VARCHAR(50)  NOT NULL,
-    BooketradNr           INT          NOT NULL,
-    Booketsetebokstav     VARCHAR(1)   NOT NULL,
-    Flyrutenummer         INT          NOT NULL,
-    lopenr                INT          NOT NULL,
-    flyvningsegmentnr     INT          NOT NULL,
+    delPris               DECIMAL(8,2)  NOT NULL,  -- Refereres fra PrisListe
+    delAvBilletKjop       INT           NOT NULL,
+    BooketflyTypeNavn     VARCHAR(50)   NOT NULL,
+    BooketradNr           INT           NOT NULL,
+    Booketsetebokstav     VARCHAR(1)    NOT NULL,
+    Flyrutenummer         INT           NOT NULL,
+    lopenr                INT           NOT NULL,
+    flyvningsegmentnr     INT           NOT NULL,
+    prisID                INT           NOT NULL,  -- Referanse til PrisListe
 
-    -- Primærnøkkel
     CONSTRAINT PK_DelBillett
         PRIMARY KEY (billettID),
 
-    -- Begrensning: billettPrisKategori kan kun være en av disse verdiene
-    CONSTRAINT CK_DelBillett_Kategori
-        CHECK (billettPrisKategori IN ('okonomi','premium','budsjett')),
-
-    -- Fremmednøkkel: BooketflyTypeNavn, BooketradNr, Booketsetebokstav → Sete
     CONSTRAINT FK_DelBillett_Sete
         FOREIGN KEY (BooketflyTypeNavn, BooketradNr, Booketsetebokstav)
         REFERENCES Sete(flyTypeNavn, radNr, seteBokstav)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
-    -- Fremmednøkkel: Flyrutenummer, lopenr, flyvningsegmentnr → FlyvningSegment
     CONSTRAINT FK_DelBillett_FlyvningSegment
         FOREIGN KEY (Flyrutenummer, lopenr, flyvningsegmentnr)
         REFERENCES FlyvningSegment(flyrutenummer, lopenr, flyvningsegmentnr)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
-    -- Fremmednøkkel til BillettKjop (knytte delbilletten til et kjøp)
     CONSTRAINT FK_DelBillett_BillettKjop
         FOREIGN KEY (delAvBilletKjop)
         REFERENCES BillettKjop(referanseNr)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
-    -- Sjekk at flyvningens status er 'planned' før delbillett kan bestilles
-    CONSTRAINT CK_DelBillett_FlyvningStatus
-        CHECK (EXISTS (
-            SELECT 1
-            FROM FaktiskFlyvning
-            WHERE FaktiskFlyvning.flyrutenummer = DelBillett.Flyrutenummer
-              AND FaktiskFlyvning.lopenr = DelBillett.lopenr
-              AND FaktiskFlyvning.flyStatus = 'planned'
-        )),
+    CONSTRAINT FK_DelBillett_Pris
+        FOREIGN KEY (prisID)
+        REFERENCES PrisListe(prisID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
 
-    -- Sjekk at samme sete ikke kan bestilles på samme flyvning
-    CONSTRAINT CK_DelBillett_UnikeSeter
-        CHECK (NOT EXISTS (
-            SELECT 1
-            FROM DelBillett AS db
-            WHERE db.Flyrutenummer = DelBillett.Flyrutenummer
-              AND db.lopenr = DelBillett.lopenr
-              AND db.flyvningsegmentnr = DelBillett.flyvningsegmentnr
-              AND db.BooketflyTypeNavn = DelBillett.BooketflyTypeNavn
-              AND db.BooketradNr = DelBillett.BooketradNr
-              AND db.Booketsetebokstav = DelBillett.Booketsetebokstav
-        ))
+    CONSTRAINT UQ_DelBillett_UnikeSeter UNIQUE (Flyrutenummer, lopenr, flyvningsegmentnr, BooketflyTypeNavn, BooketradNr, Booketsetebokstav)
 );
+
+-- Trigger for å sjekke at flystatus er 'planned' før innsending av en DelBillett
+CREATE TRIGGER check_fly_status_before_insert
+BEFORE INSERT ON DelBillett
+FOR EACH ROW
+BEGIN
+    SELECT
+        CASE
+            WHEN NOT EXISTS (
+                SELECT 1
+                FROM FaktiskFlyvning 
+                WHERE flyrutenummer = NEW.Flyrutenummer 
+                  AND lopenr = NEW.lopenr 
+                  AND flyStatus = 'planned'
+            )
+            THEN RAISE(ABORT, 'Cannot insert: Flight status is not planned')
+        END;
+END;
+
+-- Trigger for å sjekke at flystatus er 'planned' før oppdatering av en DelBillett
+CREATE TRIGGER check_fly_status_before_update
+BEFORE UPDATE ON DelBillett
+FOR EACH ROW
+BEGIN
+    SELECT
+        CASE
+            WHEN NOT EXISTS (
+                SELECT 1
+                FROM FaktiskFlyvning 
+                WHERE flyrutenummer = NEW.Flyrutenummer 
+                  AND lopenr = NEW.lopenr 
+                  AND flyStatus = 'planned'
+            )
+            THEN RAISE(ABORT, 'Cannot update: Flight status is not planned')
+        END;
+END;
 
 
 
@@ -387,4 +409,30 @@ CREATE TABLE Nasjonalitet (
         FOREIGN KEY (produsentNavn) REFERENCES Flyprodusent(produsentNavn)
         ON UPDATE CASCADE
         ON DELETE CASCADE
+);
+
+
+-- NY TABELL FOR Å SPITTE UT PRISINFORMASJON 
+-- 20) PRISLISTE
+CREATE TABLE PrisListe (
+    prisID            INT           NOT NULL,  -- Prisens unike ID
+    priskategori      VARCHAR(20)   NOT NULL,                  -- Kategori som 'okonomi', 'premium', 'budsjett'
+    pris              DECIMAL(8,2)  NOT NULL,                  -- Pris for billetten
+    gyldigfraDato     DATE          NOT NULL,                  -- Startdato for når prisen er gyldig
+    flyrutenummer     INT           NOT NULL,                  -- Flyrutenummeret prisen gjelder for
+    
+    -- Primærnøkkel
+    CONSTRAINT PK_PrisListe
+        PRIMARY KEY (prisID),
+
+    -- Sjekk at priskategori er gyldig
+    CONSTRAINT CK_PrisListe_Kategori
+        CHECK (priskategori IN ('okonomi', 'premium', 'budsjett')),
+
+    -- Fremmednøkkel: Flyrutenummer → Flyrute
+    CONSTRAINT FK_PrisListe_Flyrute
+        FOREIGN KEY (flyrutenummer)
+        REFERENCES Flyrute(flyrutenummer)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
 );
