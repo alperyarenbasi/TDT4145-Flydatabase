@@ -3,59 +3,66 @@ conn = sqlite3.connect("Flydatabase.db")
 cur = conn.cursor()
 #conn.autocommit = True
 
-# Leser SQL-scriptet fra filen "Flydatabase.sql" og kjører det
-with open("Flydatabase.sql", "r") as file:
-    sql_script = file.read()
+def run_sql_script(filename, cursor, connection):
+    """ Leser og kjører et SQL-script fra en fil. """
+    with open(filename, "r") as file:
+        sql_script = file.read()
+    
+    cursor.executescript(sql_script)
+    connection.commit()
+    print(f"SQL-scriptet '{filename}' er kjørt, og databasen er opprettet/oppdatert.")
 
-cur.executescript(sql_script)
-conn.commit()
-print("SQL-scriptet er kjørt, og databasen er opprettet/oppdatert.")
+# Kjør begge SQL-skriptene
+run_sql_script("Flydatabase.sql", cur, conn)
+run_sql_script("brukstilfelle1.sql", cur, conn) # --Brukstilfelle 1--
+run_sql_script("brukstilfelle2.sql", cur, conn) # --Brukstilfelle 2--
 
-# --Brukstilfelle 1--
-cur.execute("""
-    INSERT INTO Flyplass (flyPlassKode, flyPlassNavn) VALUES
-        ('BOO', 'Bodø Lufthavn'),
-        ('BGO', 'Bergen lufthavn, Flesland'),
-        ('OSL', 'Oslo lufthavn, Gardermoen'),
-        ('SVG', 'Stavanger lufthavn, Sola'),
-        ('TRD', 'Trondheim lufthavn, Værnes')
-""")
+#Ekstra logikk for å  sørge for at seter blir lagt til riktig 
+#Vi har valgt å gjøre dette manuelt så vi ikke trenger å skrive ut alle setene manuelt 
+def insert_seat(flyTypeNavn, radNr, seteBokstav, nodutgang):
+    """Setter inn et sete i Sete-tabellen"""
+    cur.execute("""
+        INSERT INTO Sete (flyTypeNavn, radNr, seteBokstav, nodutgang)
+        VALUES (?, ?, ?, ?)
+    """, (flyTypeNavn, radNr, seteBokstav, nodutgang))
 
-# --Brukstilfelle 2--
-cur.executescript("""
-    INSERT INTO Flyselskap (flyselskapID, navn) VALUES
-        (1, 'Norwegian'),
-        (2, 'SAS'),
-        (3, 'Widerøe');
+def generate_seats():
+    """Genererer og setter inn seter for ulike flytyper"""
+    
+    # Boeing 737-800
+    for rad in range(1, 32):  # Rader 1 til 31
+        for sete in "ABCDEF":
+            nodutgang = (rad == 13)  # Rad 13 er nødutgang
+            insert_seat("Boeing 737-800", rad, sete, nodutgang)
 
-    INSERT INTO Flytype (flytypeNavn, forsteProduksjonAAr, sisteProduksjonAAr, antallRader, FlytypeProdusent) VALUES
-        ('Boeing 737 800', 1997, 2020, 31, 'The Boeing Company'),
-        ('Airbus a320neo', 2016, NULL, 30, 'Airbus Group'),
-        ('Dash-8 100', 1984, 2005, 10, 'De Havilland Canada');
+    # Airbus A320neo
+    for rad in range(1, 31):  # Rader 1 til 30
+        for sete in "ABCDEF":
+            nodutgang = (rad in [11, 12])  # Rader 11 og 12 er nødutganger
+            insert_seat("Airbus A320neo", rad, sete, nodutgang)
 
-    -- Norwegian (Boeing 737 800)
-    INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
-        ('LN-ENU', NULL, 2015, '42069', 1, 'The Boeing Company', 'Boeing 737 800'),
-        ('LN-ENR', 'Jan Bålsrud', 2018, '42093', 1, 'The Boeing Company', 'Boeing 737 800'),
-        ('LN-NIQ', 'Max Manus', 2011, '39403', 1, 'The Boeing Company', 'Boeing 737 800'),
-        ('LN-ENS', NULL, 2017, '42281', 1, 'The Boeing Company', 'Boeing 737 800');
+    # Dash-8 100
+    insert_seat("Dash-8 100", 1, "C", False)
+    insert_seat("Dash-8 100", 1, "D", False)
+    
+    for rad in range(2, 11):  # Rader 2 til 10
+        for sete in "ABCD":
+            nodutgang = (rad == 5)  # Rad 5 er nødutgang
+            insert_seat("Dash-8 100", rad, sete, nodutgang)
 
-    -- SAS (Airbus a320neo)
-    INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
-        ('SE-RUB', 'Birger Viking', 2020, '9518', 2, 'Airbus Group', 'Airbus a320neo'),
-        ('SE-DIR', 'Nora Viking', 2023, '11421', 2, 'Airbus Group', 'Airbus a320neo'),
-        ('SE-RUP', 'Ragnhild Viking', 2024, '12066', 2, 'Airbus Group', 'Airbus a320neo'),
-        ('SE-RZE', 'Ebbe Viking', 2024, '12166', 2, 'Airbus Group', 'Airbus a320neo');
-
-    -- Widerøe (Dash-8 100)
-    INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
-        ('LN-WIH', 'Oslo', 1994, '383', 3, 'De Havilland Canada', 'Dash-8 100'),
-        ('LN-WIA', 'Nordland', 1993, '359', 3, 'De Havilland Canada', 'Dash-8 100'),
-        ('LN-WIL', 'Narvik', 1995, '298', 3, 'De Havilland Canada', 'Dash-8 100');
-""")
-conn.commit()
+# Generer og sett inn seter
+generate_seats()
 
 
 
+# Hent og skriv ut informasjon fra brukstilfelle 1
+print("\n🔹 Innhold fra brukstilfelle 1-tabellen:")
+cur.execute("SELECT * FROM Sete WHERE flyTypeNavn = 'Boeing 737-800'")  
+rows = cur.fetchall()
 
+for row in rows:
+    print(row)
+
+
+#Lukker databasen
 conn.close()
