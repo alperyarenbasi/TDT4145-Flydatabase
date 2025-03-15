@@ -1,10 +1,22 @@
 import sqlite3
+conn = sqlite3.connect("Flydatabase.sql")
+conn = sqlite3.connect("Brukertilfelle6.sql")
+cur = conn.cursor()
+
+
+def run_sql_script(filename, cursor, connection,):
+    """ Leser og kjører et SQL-script fra en fil. """
+    with open(filename, "r") as file:
+        sql_script = file.read()
+    
+    cursor.executescript(sql_script)
+    connection.commit()
+    print(f"SQL-scriptet '{filename}' er kjørt, og databasen er opprettet/oppdatert.")
+
+run_sql_script("Flydatabase.sql", cur, conn)
+run_sql_script("Brukertilfelle6.sql", cur, conn)
 
 def hent_flyruter(flyplasskode, ukedag, type_rute):
-    # Koble til databasen
-    conn = sqlite3.connect("Brukertilfelle6.sql")  # Tilpass databasenavn
-    cursor = conn.cursor()
-
     if type_rute.lower() == "avganger":
         query = """
         SELECT flyRuteNr, startFlyplassKode, endeFlyplassKode
@@ -23,8 +35,8 @@ def hent_flyruter(flyplasskode, ukedag, type_rute):
         print("Ugyldig valg. Velg enten 'avganger' eller 'ankomster'.")
         return
 
-    cursor.execute(query, (flyplasskode, ukedag))
-    resultater = cursor.fetchall()
+    cur.execute(query, (flyplasskode, ukedag))
+    resultater = cur.fetchall()
 
     if resultater:
         print(f"\n{type_rute.capitalize()} for {flyplasskode} på ukedag {ukedag}:")
@@ -33,4 +45,4 @@ def hent_flyruter(flyplasskode, ukedag, type_rute):
     else:
         print(f"Ingen {type_rute.lower()} funnet for {flyplasskode} på ukedag {ukedag}.")
 
-    conn.close()
+conn.close()
