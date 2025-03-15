@@ -190,7 +190,10 @@ def tilfelle5(cursor):
 
 
 def tilfelle7(cursor):
-    # First, let's check if the seats for Dash-8 100 exist
+    #Gjorde denne mer generell, slik at den kan kjøres flere ganger uten å få feil
+    #samt mer detaljert siden det er en del ting som må sjekkes før insert. Fikk feil mange ganger pga dette.
+
+    # sjekker om det er noen seter for Dash-8 100 
     cursor.execute("SELECT COUNT(*) FROM Sete WHERE flyTypeNavn = 'Dash-8 100'")
     seat_count = cursor.fetchone()[0]
     
@@ -198,7 +201,7 @@ def tilfelle7(cursor):
         print("Warning: No seats found for Dash-8 100. Make sure seats are generated before running this function.")
         return
     
-    # Check if the flight segment exists
+    # Sjekker om flyvningsegmentet eksisterer
     cursor.execute("SELECT COUNT(*) FROM FlyvningSegment WHERE flyrutenummer = 'WF1302' AND lopenr = 1 AND flyvningsegmentnr = 1")
     segment_count = cursor.fetchone()[0]
     
@@ -206,7 +209,7 @@ def tilfelle7(cursor):
         print("Error: The specified flight segment doesn't exist. Check that WF1302 flight is properly set up.")
         return
     
-    # Check if the price entry exists
+    # Sjekke pris for WF1302 economy class
     cursor.execute("SELECT prisID FROM Prisliste WHERE flyRuteNr = 'WF1302' AND delreiseNr = 1 AND priskategori = 'okonomi' LIMIT 1")
     price_result = cursor.fetchone()
     
@@ -216,7 +219,7 @@ def tilfelle7(cursor):
     
     price_id = price_result[0]
     
-    # Now insertion
+    # Insertion
     sql_script = f"""
     -- First check if the customer already exists to avoid duplicates
     INSERT OR IGNORE INTO Kunde (kundeNr, telefonNr, epost, navn, nasjonalitet)
@@ -240,7 +243,7 @@ def tilfelle7(cursor):
     try:
         cursor.executescript(sql_script)
         
-        # Get available seats for the Dash-8 100
+        # ledige seter for Dash-8 100 så vi ikke tar noen oppdatte seter
         cursor.execute("""
         SELECT flyTypeNavn, radNr, seteBokstav 
         FROM Sete 
@@ -254,7 +257,7 @@ def tilfelle7(cursor):
         if len(available_seats) < 10:
             print(f"Warning: Only {len(available_seats)} seats available, but 10 needed.")
             
-        # Insert tickets one by one to handle any potential errors
+        # Legge inn en og en ticket i DelBillett (mulig å sette inn alle på en gang også. se brukstilfelle7.sql kommentar på bunn)
         for i, (ref_nr, seat) in enumerate(zip(range(1001, 1011), available_seats), start=1):
             billettID = 0000 + i
             flyTypeNavn, radNr, seteBokstav = seat

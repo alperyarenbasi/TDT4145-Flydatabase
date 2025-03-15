@@ -3,7 +3,9 @@ import BrukerTilfeller as bt
 import ExtraFunctions as ef
 import os
 
+#Filenavn for SQLite-databasen
 databaseFile = "Flydatabase.db"
+
 if not os.path.exists(databaseFile):
     conn = sqlite3.connect(databaseFile)
     cur = conn.cursor()
@@ -18,30 +20,17 @@ conn.autocommit = False
 
 
 
-
-
 bt.tilfelle1(cur)
-
 bt.tilfelle2(cur)
-
 ef.generate_seats(cur) 
-
 bt.tilfelle3(cur)
 bt.tilfelle4(cur)
 bt.tilfelle5(cur)
-
+#bt.tilfelle6(cur) Implementer denne. Løs evt i egen fil.
 bt.tilfelle7(cur)
-ef.printTabell(cur, "DelBillett")  # Viser innholdet i tabellen Flyselskap
-
-# ef.printAllTables(cur)  # Viser innholdet i alle tabeller
+# opg 8 er gjort tror jeg. Tror den er i BrukerTilfeller.py
 
 
-# run_sql_script("brukstilfelle4.sql", cur, conn)
-# run_sql_script("brukstilfelle5.sql", cur, conn)
-# run_sql_script("brukstilfelle7.sql", cur, conn)
+ef.printTabell(cur, "Fly")
 
-
-
-
-#Lukker databasen
 conn.close()

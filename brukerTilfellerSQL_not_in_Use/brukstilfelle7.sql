@@ -37,8 +37,6 @@ VALUES
 
 
 -- def tilfelle7(cursor):
---     # First, verify that we have the necessary prerequisites
---     # Check if the flight segment exists
 --     cursor.execute("SELECT COUNT(*) FROM FlyvningSegment WHERE flyrutenummer = 'WF1302' AND lopenr = 1 AND flyvningsegmentnr = 1")
 --     segment_count = cursor.fetchone()[0]
     
@@ -46,7 +44,6 @@ VALUES
 --         print("Error: The specified flight segment doesn't exist. Check that WF1302 flight is properly set up.")
 --         return
     
---     # Check if the price entry exists
 --     cursor.execute("SELECT prisID FROM Prisliste WHERE flyRuteNr = 'WF1302' AND delreiseNr = 1 AND priskategori = 'okonomi' LIMIT 1")
 --     price_result = cursor.fetchone()
     
@@ -56,7 +53,6 @@ VALUES
     
 --     price_id = price_result[0]
     
---     # Let's make sure we have enough seats in the Sete table
 --     cursor.execute("SELECT COUNT(*) FROM Sete WHERE flyTypeNavn = 'Dash-8 100'")
 --     seat_count = cursor.fetchone()[0]
     
@@ -64,7 +60,6 @@ VALUES
 --         print(f"Warning: Only {seat_count} seats found for Dash-8 100, but 10 are needed.")
 --         return
         
---     # Now proceed with the bulk insertion using a single SQL script
 --     sql_script = f"""
 --     -- First check if the customer already exists to avoid duplicates
 --     INSERT OR IGNORE INTO Kunde (kundeNr, telefonNr, epost, navn, nasjonalitet)
@@ -105,7 +100,6 @@ VALUES
 --         print("Data for tilfelle7 har blitt lagt til i databasen (10 billettbestillinger for WF1302 den 1. april 2025).")
 --     except sqlite3.Error as e:
 --         print(f"Database error: {e}")
---         # Ensure transaction is rolled back in case of error
 --         cursor.execute("ROLLBACK")
 --         return
 
