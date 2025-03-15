@@ -134,11 +134,14 @@ CREATE TABLE RuteTil (
 
 -- 9) KUNDE
 CREATE TABLE Kunde (
-    kundeNr       INTEGER PRIMARY KEY AUTOINCREMENT, 
+    kundeNr       INT  NOT NULL, 
     telefonNr     TEXT NOT NULL,
     epost         TEXT NOT NULL,
     navn          TEXT NOT NULL,
-    nasjonalitet  TEXT NOT NULL
+    nasjonalitet  TEXT NOT NULL,
+
+    CONSTRAINT PK_Kunde
+        PRIMARY KEY (kundeNr)
 );
 
 -- 10) FORDELSPROGRAM
@@ -288,7 +291,7 @@ CREATE TABLE FlyvningSegment (
 
 -- 16) BILLETTKJOP
 CREATE TABLE BillettKjop (
-    referanseNr    INT        NOT NULL,
+    referanseNr    INT   NOT NULL,
     innsjekkTid    DATETIME   NULL,
     erTurRetur     BOOLEAN    NOT NULL,
     kjoptAvKundeNr INT        NOT NULL,
@@ -305,7 +308,7 @@ CREATE TABLE BillettKjop (
 CREATE TABLE DelBillett (
     billettID             INT           NOT NULL,
     delPris               DECIMAL(8,2)  NOT NULL,  -- Refereres fra PrisListe
-    delAvBilletKjop       INT           NOT NULL,
+    delAvBilletKjop       INTEGER          NOT NULL,
     BooketflyTypeNavn     VARCHAR(50)   NOT NULL,
     BooketradNr           INT           NOT NULL,
     Booketsetebokstav     VARCHAR(1)    NOT NULL,

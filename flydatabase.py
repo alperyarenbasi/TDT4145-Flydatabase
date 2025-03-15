@@ -1,6 +1,7 @@
 import sqlite3
 conn = sqlite3.connect("Flydatabase.db")
 cur = conn.cursor()
+cur.execute("PRAGMA foreign_keys = ON;")
 #conn.autocommit = True
 
 def run_sql_script(filename, cursor, connection):
@@ -55,16 +56,9 @@ generate_seats()
 
 
 run_sql_script("brukstilfelle3.sql", cur, conn)
-
-# Hent og skriv ut informasjon fra brukstilfelle 1
-print("\n🔹 Innhold fra brukstilfelle 1-tabellen:")
-cur.execute("SELECT * FROM Prisliste")  
-rows = cur.fetchall()
-
-for row in rows:
-    print(row)
-
-
+run_sql_script("brukstilfelle4.sql", cur, conn)
+run_sql_script("brukstilfelle5.sql", cur, conn)
+run_sql_script("brukstilfelle7.sql", cur, conn)
 
 
 
