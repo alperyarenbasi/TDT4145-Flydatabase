@@ -241,7 +241,7 @@ CREATE TABLE FaktiskFlyvning (
     flyrutenummer VARCHAR(10) NOT NULL,
     lopenr        INT         NOT NULL,
     dato          DATE        NOT NULL,
-    flyStatus        VARCHAR(10) NOT NULL,
+    flyStatus     VARCHAR(10) NOT NULL,
     bruktFly      VARCHAR(50) NOT NULL,
     CONSTRAINT PK_FaktiskFlyvning
         PRIMARY KEY (flyrutenummer, lopenr),
