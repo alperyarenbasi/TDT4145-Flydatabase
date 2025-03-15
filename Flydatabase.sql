@@ -176,7 +176,7 @@ CREATE TABLE Medlem (
 
 -- 12) FLYRUTE
 CREATE TABLE Flyrute (
-    flyRuteNr           INTEGER       PRIMARY KEY AUTOINCREMENT, 
+    flyRuteNr           VARCHAR(10)   NOT NULL, 
     ukedagsKode         TEXT          NOT NULL,
     oppstartsDato       DATE          NOT NULL,
     sluttDato           DATE          NULL,
@@ -185,6 +185,8 @@ CREATE TABLE Flyrute (
     opereresAvFlySelskap INTEGER      NOT NULL,
     bruktFlyType        TEXT          NOT NULL,
     
+    CONSTRAINT pk_flyRuteNr PRIMARY KEY (flyRuteNr),
+
     -- Sjekk at oppstartsDato er før eller lik sluttDato (dersom sluttDato er angitt)
     CONSTRAINT CK_Flyrute_Dato
         CHECK (sluttDato IS NULL OR oppstartsDato <= sluttDato),
@@ -202,7 +204,7 @@ CREATE TABLE Flyrute (
 
 -- 13) DELREISE
 CREATE TABLE Delreise (
-    flyRuteNr            INT          NOT NULL,
+    flyRuteNr            VARCHAR(10) NOT NULL,
     delreiseNr           INT          NOT NULL,
     avgangstid           TIME         NOT NULL,
     ankomsttid           TIME         NOT NULL,
@@ -236,7 +238,7 @@ CREATE TABLE Delreise (
 
 -- 14) FAKTISKSFLYVNING
 CREATE TABLE FaktiskFlyvning (
-    flyrutenummer INT         NOT NULL,
+    flyrutenummer VARCHAR(10) NOT NULL,
     lopenr        INT         NOT NULL,
     dato          DATE        NOT NULL,
     flyStatus        VARCHAR(10) NOT NULL,
@@ -257,12 +259,12 @@ CREATE TABLE FaktiskFlyvning (
 
 -- 15) FLYVNINGSEGMENT
 CREATE TABLE FlyvningSegment (
-    flyrutenummer       INT      NOT NULL,
-    lopenr              INT      NOT NULL,
-    flyvningsegmentnr   INT      NOT NULL,
-    faktiskAvgangTid    DATETIME NOT NULL,
-    faktiskAnkomstTid   DATETIME NOT NULL,
-    delreiseNr          INT      NOT NULL,
+    flyrutenummer       VARCHAR(10) NOT NULL,
+    lopenr              INT         NOT NULL,
+    flyvningsegmentnr   INT         NOT NULL,
+    faktiskAvgangTid    DATETIME    NOT NULL,
+    faktiskAnkomstTid   DATETIME    NOT NULL,
+    delreiseNr          INT         NOT NULL,
     CONSTRAINT PK_FlyvningSegment
         PRIMARY KEY (flyrutenummer, lopenr, flyvningsegmentnr),
     CONSTRAINT FK_FlyvningSegment_FaktiskFlyvning
