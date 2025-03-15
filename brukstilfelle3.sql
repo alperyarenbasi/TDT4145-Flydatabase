@@ -1,3 +1,8 @@
+
+-- Vi har her valgt å legge til FlyruteNr Manuelt selv om den er implementert som en autoincrement i databasen. 
+-- Dette er for å kunne tydeliggjøre hvilke delreiser som hører til hvilken flyrute.
+-- Dette kan egentlig sløyfes men er for å gjøre det enklere å forstå hva som hører til hva.
+
 -- Legg til flyruter med korrekt flyselskapID
 INSERT INTO Flyrute (flyRuteNr, ukedagsKode, oppstartsDato, startFlyplassKode, endeFlyplassKode, opereresAvFlySelskap, bruktFlyType)
 VALUES 
