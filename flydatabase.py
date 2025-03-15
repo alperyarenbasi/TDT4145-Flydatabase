@@ -22,14 +22,13 @@ conn.autocommit = False
 
 bt.tilfelle1(cur)
 bt.tilfelle2(cur)
-# conn.commit()
+ef.generate_seats(cur)              
 
 
-ef.printTabell(cur, "Flyselskap")  # Viser innholdet i tabellen Flyselskap
+# ef.printTabell(cur, "Sete")  # Viser innholdet i tabellen Flyselskap
+# ef.printAllTables(cur)  # Viser innholdet i alle tabeller
 
 
-# run_sql_script("brukstilfelle1.sql", cur, conn) # --Brukstilfelle 1--
-# run_sql_script("brukstilfelle2.sql", cur, conn) # --Brukstilfelle 2--
 
 # #Ekstra logikk for å  sørge for at seter blir lagt til riktig 
 # #Vi har valgt å gjøre dette manuelt så vi ikke trenger å skrive ut alle setene manuelt 
