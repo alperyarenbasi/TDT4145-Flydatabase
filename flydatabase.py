@@ -65,5 +65,9 @@ for row in rows:
     print(row)
 
 
+
+
+
+
 #Lukker databasen
 conn.close()
