@@ -1,4 +1,6 @@
 """
+Basert på de testene vi gjør her så ser vi blant annet følgende output:
+
 Advarsel: Klarte å sette inn et svært langt regnr, sjekk om dette er ønsket!
 Advarsel: Klarte å sette inn et fly med aarDrift før flytypen ble produsert!
 Advarsel: Klarte å sette inn en flytype med negativt antall rader!
@@ -7,6 +9,11 @@ Advarsel: Klarte å sette inn et fly med fremtidig aarDrift (2026)! Er dette OK?
 Advarsel: Klarte å endre flytype til en fra en annen produsent!
 Advarsel: Klarte å sette inn to fly med samme serienummer!
 Advarsel: Klarte å sette inn en nasjonalitet med tom streng!
+
+Mange av disse advarselene er ting som ideelt sett bør legges til som constranints i databasen
+Vi har valgt å ikke gjøre noe med disse svakhetene siden SÅ LENGE VI GIR RIKTIG INPUT HAR SVAKHETENE INGENTING Å SI 
+Ingen av testene oppdaget FEIL men heller svakheter i databasen. Siden vi ikke har oppdaget feil er det ikke noe vi ønsker å gå videre med  
+Ideelt sett er dog dette noe vi konne sett nærmere på 
 """
 
 import sqlite3
