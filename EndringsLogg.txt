@@ -4,4 +4,6 @@ ENDRINGSLOGG:
 2. Constraints i delbillett er oppdatert slik man kan kun kjøpe billett på fly som har status planned 
 3. Constraints i delbillett er oppdater slik at to delbilletter på samme flyvningssegment ikke kan ha samme sete (Samme sete kan ikke bestilles på ganger på samme flyvning)
 4. Trigger funksjoner har blitt fjernet til fordel for manuell implementering 
+5. flyselskapID har blitt endret til VARCHAR(3) (Fra type INT) pga. oppgaveteksten. Denne endringen hr gjort at referanser til denne tabellen, som eksø. gjøres i fly tabellen også endrer datatype 
+6. Vi har implementer autoincrement der vi har sett at dette er nødvendig
 

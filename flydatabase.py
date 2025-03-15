@@ -54,7 +54,7 @@ def generate_seats():
 generate_seats()
 
 
-run_sql_script("brustilfelle3.sql", cur, conn)
+run_sql_script("brukstilfelle3.sql", cur, conn)
 
 # Hent og skriv ut informasjon fra brukstilfelle 1
 print("\n🔹 Innhold fra brukstilfelle 1-tabellen:")
