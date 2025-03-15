@@ -1,7 +1,7 @@
 -- Vi har valgt å tolke det slik at disse flyvningene er planned tiden si skjer i framtiden (per mars 2025) 
 -- ANGAGELSE Vi antar jo at disse faktiske flyvningene er mulig å gjøre. Altså at ruten finnes i flyrute og delreise tabellen. Vi har for sikkerhetsskyld lagt til en insert or ignore statement for å ta hensyn til dette 
 -- Ignore delen er reletant dersom en prøver å gjøre en faktiskflyvning av en flyrute som ikke eksisterer. Siden flyrutenr er en del av PK vil dette føre til trøbbel i databasen 
-INSERT INTO OR IGNORE FaktiskFlyvning (flyrutenummer, lopenr, dato, flyStatus, bruktFly) 
+INSERT OR IGNORE INTO FaktiskFlyvning (flyrutenummer, lopenr, dato, flyStatus, bruktFly) 
 VALUES 
 (
     (SELECT flyRuteNr FROM Flyrute WHERE startFlyplassKode = 'BOO' AND endeFlyplassKode = 'TRD'),
