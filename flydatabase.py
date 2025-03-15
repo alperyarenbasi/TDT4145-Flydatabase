@@ -1,30 +1,33 @@
 import sqlite3
-
-
-conn = sqlite3.connect("Flydatabase.db")
-cur = conn.cursor()
-cur.execute("PRAGMA foreign_keys = ON;")
 import BrukerTilfeller as bt
+import ExtraFunctions as ef
+import os
+
+databaseFile = "Flydatabase.db"
+if not os.path.exists(databaseFile):
+    conn = sqlite3.connect(databaseFile)
+    cur = conn.cursor()
+    ef.run_sql_script("Flydatabase.sql", cur, conn)
+else:
+    conn = sqlite3.connect(databaseFile)
+    cur = conn.cursor()
+
+cur.execute("PRAGMA foreign_keys = ON;")
+conn.autocommit = False
 
 
-def run_sql_script(filename, cursor, connection):
-    """ Leser og kjører et SQL-script fra en fil. """
-    with open(filename, "r") as file:
-        sql_script = file.read()
-    
-    cursor.executescript(sql_script)
-    connection.commit()
-    print(f"SQL-scriptet '{filename}' er kjørt, og databasen er opprettet/oppdatert.")
-
-# Kjør begge SQL-skriptene
-run_sql_script("Flydatabase.sql", cur, conn)
-
-
-# bt.tilfelle1(cur)
 
 
 
-# bt.tilfelle2(cur)
+
+bt.tilfelle1(cur)
+bt.tilfelle2(cur)
+# conn.commit()
+
+
+ef.printTabell(cur, "Flyselskap")  # Viser innholdet i tabellen Flyselskap
+
+
 # run_sql_script("brukstilfelle1.sql", cur, conn) # --Brukstilfelle 1--
 # run_sql_script("brukstilfelle2.sql", cur, conn) # --Brukstilfelle 2--
 

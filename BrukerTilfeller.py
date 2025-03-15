@@ -13,11 +13,19 @@ def tilfelle1(cursor):
 
 def tilfelle2(cursor):
     sql_script = """
+    -- Sett inn i Flyprodusent først
+    INSERT INTO Flyprodusent (produsentNavn, stiftelsesAar) VALUES
+        ('The Boeing Company', 1916),
+        ('Airbus Group', 1970),
+        ('De Havilland Canada', 1928);
+
+    -- Deretter Flyselskap
     INSERT INTO Flyselskap (flyselskapID, navn) VALUES
         ('DY', 'Norwegian'),
         ('SK', 'SAS'),
         ('WF', 'Widerøe');
 
+    -- Så Flytype, som avhenger av Flyprodusent
     INSERT INTO Flytype (flytypeNavn, forsteProduksjonAAr, sisteProduksjonAAr, antallRader, FlytypeProdusent) VALUES
         ('Boeing 737 800', 1997, 2020, 31, 'The Boeing Company'),
         ('Airbus a320neo', 2016, NULL, 30, 'Airbus Group'),
@@ -43,6 +51,7 @@ def tilfelle2(cursor):
         ('LN-WIA', 'Nordland', 1993, '359', 'WF', 'De Havilland Canada', 'Dash-8 100'),
         ('LN-WIL', 'Narvik', 1995, '298', 'WF', 'De Havilland Canada', 'Dash-8 100');
 
+    -- Til slutt Nasjonalitet
     INSERT INTO Nasjonalitet (produsentNavn, nasjonalitet) VALUES 
         ('The Boeing Company', 'USA'),
         ('Airbus Group', 'Frankrike'),
