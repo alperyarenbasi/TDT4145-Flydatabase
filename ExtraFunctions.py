@@ -161,11 +161,11 @@ def generate_seats(cursor):
             nodutgang = (rad == 13)  # Rad 13 er nødutgang
             insert_seat(cursor, "Boeing 737 800", rad, sete, nodutgang)
 
-    # Airbus a320neo (lowercase 'a')
+    # Airbus A320neo (lowercase 'a')
     for rad in range(1, 31):  # Rader 1 til 30
         for sete in "ABCDEF":
             nodutgang = (rad in [11, 12])  # Rader 11 og 12 er nødutganger
-            insert_seat(cursor, "Airbus a320neo", rad, sete, nodutgang)
+            insert_seat(cursor, "Airbus A320neo", rad, sete, nodutgang)
 
     # Dash-8 100
     insert_seat(cursor, "Dash-8 100", 1, "C", False)
