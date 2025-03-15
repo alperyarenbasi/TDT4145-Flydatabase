@@ -175,6 +175,7 @@ CREATE TABLE Medlem (
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
+
 -- 12) FLYRUTE
 CREATE TABLE Flyrute (
     flyRuteNr           INTEGER       NOT NULL,
