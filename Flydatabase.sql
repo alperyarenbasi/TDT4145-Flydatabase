@@ -29,7 +29,7 @@ CREATE TABLE Flyplass (
 
 -- 2) FLYSELSKAP
 CREATE TABLE Flyselskap (
-    flyselskapID      INT          NOT NULL,
+    flyselskapID      VARCHAR(3)   NOT NULL,
     navn              VARCHAR(100) NOT NULL,
     CONSTRAINT PK_Flyselskap
         PRIMARY KEY (flyselskapID)
@@ -97,7 +97,7 @@ CREATE TABLE Fly (
     navn               VARCHAR(100) NULL,
     aarDrift           INT          NOT NULL,
     serienr            VARCHAR(50)  NOT NULL,
-    tilhorerSelskapID  INT          NOT NULL,
+    tilhorerSelskapID  VARCHAR(3)   NULL,
     produsentNavn      VARCHAR(100) NOT NULL,
     erType             VARCHAR(100) NOT NULL,
     CONSTRAINT PK_Fly
@@ -134,13 +134,11 @@ CREATE TABLE RuteTil (
 
 -- 9) KUNDE
 CREATE TABLE Kunde (
-    kundeNr       INT           NOT NULL,
-    telefonNr     VARCHAR(50)   NOT NULL,
-    epost         VARCHAR(100)  NOT NULL,
-    navn          VARCHAR(100)  NOT NULL,
-    nasjonalitet  VARCHAR(50)   NOT NULL,
-    CONSTRAINT PK_Kunde
-        PRIMARY KEY (kundeNr)
+    kundeNr       INTEGER PRIMARY KEY AUTOINCREMENT, 
+    telefonNr     TEXT NOT NULL,
+    epost         TEXT NOT NULL,
+    navn          TEXT NOT NULL,
+    nasjonalitet  TEXT NOT NULL
 );
 
 -- 10) FORDELSPROGRAM
@@ -178,7 +176,7 @@ CREATE TABLE Medlem (
 
 -- 12) FLYRUTE
 CREATE TABLE Flyrute (
-    flyRuteNr           INTEGER       NOT NULL,
+    flyRuteNr           INTEGER       PRIMARY KEY AUTOINCREMENT, 
     ukedagsKode         TEXT          NOT NULL,
     oppstartsDato       DATE          NOT NULL,
     sluttDato           DATE          NULL,
@@ -187,9 +185,6 @@ CREATE TABLE Flyrute (
     opereresAvFlySelskap INTEGER      NOT NULL,
     bruktFlyType        TEXT          NOT NULL,
     
-    CONSTRAINT PK_Flyrute
-        PRIMARY KEY (flyRuteNr),
-
     -- Sjekk at oppstartsDato er før eller lik sluttDato (dersom sluttDato er angitt)
     CONSTRAINT CK_Flyrute_Dato
         CHECK (sluttDato IS NULL OR oppstartsDato <= sluttDato),
@@ -414,26 +409,26 @@ CREATE TABLE Nasjonalitet (
 
 
 -- NY TABELL FOR Å SPITTE UT PRISINFORMASJON 
--- 20) PRISLISTE
-CREATE TABLE PrisListe (
-    prisID            INT           NOT NULL,  -- Prisens unike ID
-    priskategori      VARCHAR(20)   NOT NULL,                  -- Kategori som 'okonomi', 'premium', 'budsjett'
-    pris              DECIMAL(8,2)  NOT NULL,                  -- Pris for billetten
-    gyldigfraDato     DATE          NOT NULL,                  -- Startdato for når prisen er gyldig
-    flyrutenummer     INT           NOT NULL,                  -- Flyrutenummeret prisen gjelder for
-    
-    -- Primærnøkkel
-    CONSTRAINT PK_PrisListe
-        PRIMARY KEY (prisID),
+-- 20) PRISLISTE (oppdatert)
+CREATE TABLE Prisliste (
+    prisID          INTEGER       PRIMARY KEY AUTOINCREMENT,  -- Prisens unike ID (autoinkrement)
+    priskategori    TEXT          NOT NULL,  -- Kategori som 'okonomi', 'premium', 'budsjett'
+    pris           DECIMAL(8,2)   NOT NULL,  -- Pris for billetten
+    gyldigfraDato  DATE           NOT NULL,  -- Startdato for når prisen er gyldig
+    flyRuteNr      INTEGER        NOT NULL,  -- Flyrutenummer prisen gjelder for
+    delreiseNr     INTEGER        NULL,      -- Hvilken delreise prisen gjelder for (kan være NULL hvis prisen gjelder for hele ruten)
 
     -- Sjekk at priskategori er gyldig
-    CONSTRAINT CK_PrisListe_Kategori
-        CHECK (priskategori IN ('okonomi', 'premium', 'budsjett')),
+    CHECK (priskategori IN ('okonomi', 'premium', 'budsjett')),
 
-    -- Fremmednøkkel: Flyrutenummer → Flyrute
-    CONSTRAINT FK_PrisListe_Flyrute
-        FOREIGN KEY (flyrutenummer)
-        REFERENCES Flyrute(flyrutenummer)
+    -- Fremmednøkkel: Knytter prisen til en hel flyrute eller en spesifikk delreise
+    FOREIGN KEY (flyRuteNr) 
+        REFERENCES Flyrute(flyRuteNr)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    FOREIGN KEY (flyRuteNr, delreiseNr)
+        REFERENCES Delreise(flyRuteNr, delreiseNr)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 );
