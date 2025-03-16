@@ -20,13 +20,13 @@ def get_available_flights(cursor, date_str):
     return cursor.fetchall()
 
 # Eksempel på bruk:
-# user_date = input("Angi dato (YYYY-MM-DD): ")
-# available_flights = get_available_flights(cur, user_date)
-# if available_flights:
-#     for flight in available_flights:
-#         print(flight)
-# else:
-#     print("Ingen planlagte flyvninger funnet for denne datoen.")
+user_date = input("Angi dato (YYYY-MM-DD): ")
+available_flights = get_available_flights(cur, user_date)
+if available_flights:
+    for flight in available_flights:
+        print(flight)
+else:
+    print("Ingen planlagte flyvninger funnet for denne datoen.")
 
 
 

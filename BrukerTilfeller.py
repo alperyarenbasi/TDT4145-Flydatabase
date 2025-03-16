@@ -184,10 +184,11 @@ def tilfelle5(cursor):
     for row in results:
         print("{:<20} {:<25} {:<10}".format(row[0], row[1], row[2]))
     
-    print("\nData for tilfelle5 har blitt hentet fra databasen (flyselskap flytype oversikt).")
 
 
-
+def tilfelle6(cursor):
+    # IMPLEMENTER DENNE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    return None
 
 def tilfelle7(cursor):
     #Gjorde denne mer generell, slik at den kan kjøres flere ganger uten å få feil

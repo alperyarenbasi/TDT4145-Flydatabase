@@ -29,7 +29,7 @@ try:                # Fiks try except i hver av bt.tilfelle1-8 ??
     ef.generate_seats(cur) 
     bt.tilfelle3(cur)
     bt.tilfelle4(cur)
-    # bt.tilfelle5(cur)             #Fiks denne slik den ikke printer ut shit, KUN INITIALZING DATA INTO THE DB HER
+    #Tilfelle5 er en SQL-spørring, dermed er ikke en initialsiering av data inn i databasen
     #bt.tilfelle6(cur)              #Implementer denne. Løs evt i egen fil.
     bt.tilfelle7(cur)
     # opg 8 er gjort tror jeg. Tror den er i BrukerTilfeller.py
