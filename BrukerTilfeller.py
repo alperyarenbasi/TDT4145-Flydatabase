@@ -197,6 +197,10 @@ def tilfelle5(cursor):
     # Print results
     for row in results:
         print("{:<20} {:<25} {:<10}".format(row[0], row[1], row[2]))
+
+
+
+
     
 def tilfelle7(cursor):
     #Gjorde denne mer generell, slik at den kan kjøres flere ganger uten å få feil
