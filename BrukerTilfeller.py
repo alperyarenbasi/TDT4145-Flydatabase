@@ -15,45 +15,42 @@ def tilfelle1(cursor):
 
 def tilfelle2(cursor):
     sql_script = """
-    -- Sett inn i Flyprodusent først
+    -- Sett inn i Flyprodusent først (aar er hentet fra Wikipedia da disse ikke var oppgitt i prosjektbeskrivelsen) 
+    -- Kilder: https://en.wikipedia.org/wiki/Boeing, https://en.wikipedia.org/wiki/Airbus, https://en.wikipedia.org/wiki/De_Havilland_Canada
     INSERT INTO Flyprodusent (produsentNavn, stiftelsesAar) VALUES
         ('The Boeing Company', 1916),
         ('Airbus Group', 1970),
         ('De Havilland Canada', 1928);
 
-    -- Deretter Flyselskap
+    -- INNSETTING TIL FLYSELSKAP
     INSERT INTO Flyselskap (flyselskapID, navn) VALUES
         ('DY', 'Norwegian'),
         ('SK', 'SAS'),
+    --  ('FLY', 'TESTFLYVNING'), -- For testing I tilfelle 5 
         ('WF', 'Widerøe');
 
-    -- Så Flytype, som avhenger av Flyprodusent
+
+    -- INNSETTING TIL FLYTYPE
     INSERT INTO Flytype (flytypeNavn, forsteProduksjonAAr, sisteProduksjonAAr, antallRader, FlytypeProdusent) VALUES
         ('Boeing 737 800', 1997, 2020, 31, 'The Boeing Company'),
         ('Airbus A320neo', 2016, NULL, 30, 'Airbus Group'),
         ('Dash-8 100', 1984, 2005, 10, 'De Havilland Canada');
 
-    -- Norwegian (Airbus A320neo)
-    INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
-        ('LN-ENU', NULL, 2015, '42069', 'DY', 'Airbus Group', 'Airbus A320neo'),
-        ('LN-ENR', 'Jan Bålsrud', 2018, '42093', 'DY', 'Airbus Group', 'Airbus A320neo'),
-        ('LN-NIQ', 'Max Manus', 2011, '39403', 'DY', 'Airbus Group', 'Airbus A320neo'),
-        ('LN-ENS', NULL, 2017, '42281', 'DY', 'Airbus Group', 'Airbus A320neo');
+    
+    INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, erType) VALUES
+        ('LN-ENU', NULL, 2015, '42069', 'DY', 'Boeing 737 800'), -- Norwegian (Boeing 737 800)
+        ('LN-ENR', 'Jan Bålsrud', 2018, '42093', 'DY', 'Boeing 737 800'),
+        ('LN-NIQ', 'Max Manus', 2011, '39403', 'DY', 'Boeing 737 800'),
+        ('LN-ENS', NULL, 2017, '42281', 'DY', 'Boeing 737 800'),
+        ('SE-RUB', 'Birger Viking', 2020, '9518', 'SK', 'Airbus A320neo'), -- SAS (Airbus A320neo)
+        ('SE-DIR', 'Nora Viking', 2023, '11421', 'SK', 'Airbus A320neo'),
+        ('SE-RUP', 'Ragnhild Viking', 2024, '12066', 'SK', 'Airbus A320neo'),
+        ('SE-RZE', 'Ebbe Viking', 2024, '12166', 'SK', 'Airbus A320neo'),
+        ('LN-WIH', 'Oslo', 1994, '383', 'WF', 'Dash-8 100'), -- Widerøe (Dash-8 100)
+        ('LN-WIA', 'Nordland', 1993, '359', 'WF', 'Dash-8 100'),
+        ('LN-WIL', 'Narvik', 1995, '298', 'WF', 'Dash-8 100');
 
-    -- SAS (Airbus A320neo)
-    INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
-        ('SE-RUB', 'Birger Viking', 2020, '9518', 'SK', 'Airbus Group', 'Airbus A320neo'),
-        ('SE-DIR', 'Nora Viking', 2023, '11421', 'SK', 'Airbus Group', 'Airbus A320neo'),
-        ('SE-RUP', 'Ragnhild Viking', 2024, '12066', 'SK', 'Airbus Group', 'Airbus A320neo'),
-        ('SE-RZE', 'Ebbe Viking', 2024, '12166', 'SK', 'Airbus Group', 'Airbus A320neo');
-
-    -- Widerøe (Airbus A320neo)
-    INSERT INTO Fly (regnr, navn, aarDrift, serienr, tilhorerSelskapID, produsentNavn, erType) VALUES
-        ('LN-WIH', 'Oslo', 1994, '383', 'WF', 'Airbus Group', 'Airbus A320neo'),
-        ('LN-WIA', 'Nordland', 1993, '359', 'WF', 'Airbus Group', 'Airbus A320neo'),
-        ('LN-WIL', 'Narvik', 1995, '298', 'WF', 'Airbus Group', 'Airbus A320neo');
-
-    -- Til slutt Nasjonalitet
+    -- Nasjonalitet
     INSERT INTO Nasjonalitet (produsentNavn, nasjonalitet) VALUES 
         ('The Boeing Company', 'USA'),
         ('Airbus Group', 'Frankrike'),
@@ -61,6 +58,25 @@ def tilfelle2(cursor):
         ('Airbus Group', 'Spania'),
         ('Airbus Group', 'Storbritannia'),
         ('De Havilland Canada', 'Canada');
+
+    /*
+    På grunn av denne constrainten:
+        CONSTRAINT FK_Delreise_RuteTil
+        FOREIGN KEY (delStartFlyplassKode, delSluttFlyplassKode)
+        REFERENCES RuteTil(fraFlyplassKode, tilFlyplassKode)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    må vi legge til informasjon i RuteTil. Vi har valgt å se det som mest hensiktsmessig å gjøre dette i denne deloppgaven 
+    */
+    -- RuteTil, Legger kun til de som er nødvendige for flyrutene som blir implementert i vedlegg 3. Hvis flere ruter skal legges til, må dette gjøres manuelt (eventuelt fjerne constrainten i flydatabase.sql filen)
+    INSERT INTO RuteTil (fraFlyplassKode, tilFlyplassKode) VALUES
+        ('TRD', 'BOO'),
+        ('BOO', 'TRD'),
+        ('TRD', 'OSL'),
+        ('OSL', 'TRD'),
+        ('TRD', 'BGO'),
+        ('BGO', 'SVG');
+        
     """
     cursor.executescript(sql_script)
     print("Data for tilfelle2 har blitt lagt til i databasen.")
@@ -70,16 +86,6 @@ def tilfelle2(cursor):
 
 def tilfelle3(cursor):
     sql_script = """
-    -- First, insert airport pairs into RuteTil table.  !!!!!!!!!! MÅ DETTE
-    INSERT INTO RuteTil (fraFlyplassKode, tilFlyplassKode) VALUES
-        ('TRD', 'BOO'),
-        ('BOO', 'TRD'),
-        ('TRD', 'OSL'),
-        ('OSL', 'TRD'),
-        ('TRD', 'BGO'),
-        ('BGO', 'SVG');
-
-    -- Now proceed with the original script
     -- Legg til flyruter med korrekt flyselskapID
     INSERT INTO Flyrute (flyRuteNr, ukedagsKode, oppstartsDato, startFlyplassKode, endeFlyplassKode, opereresAvFlySelskap, bruktFlyType)
     VALUES 
@@ -88,6 +94,14 @@ def tilfelle3(cursor):
     ("DY753", '1234567', '2018-01-01', 'TRD', 'OSL', 'DY', 'Boeing 737 800'),  -- DY753 TRD-OSL
     ("SK332", '1234567', '2018-01-01', 'OSL', 'TRD', 'SK', 'Airbus A320neo'),  -- SK332 OSL-TRD
     ("SK888", '12345', '2018-01-01', 'TRD', 'SVG', 'SK', 'Airbus A320neo');  -- SK888 TRD-SVG via BGO
+
+    -- Legg til flytyper for Norwegian (DY)
+    INSERT INTO BenytterType (flyselskapID, flyTypeNavn)
+    VALUES 
+    ('DY', 'Boeing 737 800'),  
+    ('SK', 'Airbus A320neo'),  
+    ('WF', 'Dash-8 100');  
+
 
     -- Legg til delreiser
     INSERT INTO Delreise (flyRuteNr, delreiseNr, avgangstid, ankomsttid, delStartFlyplassKode, delSluttFlyplassKode)
@@ -184,17 +198,11 @@ def tilfelle5(cursor):
     for row in results:
         print("{:<20} {:<25} {:<10}".format(row[0], row[1], row[2]))
     
-
-
-def tilfelle6(cursor):
-    # IMPLEMENTER DENNE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    return None
-
 def tilfelle7(cursor):
     #Gjorde denne mer generell, slik at den kan kjøres flere ganger uten å få feil
     #samt mer detaljert siden det er en del ting som må sjekkes før insert. Fikk feil mange ganger pga dette.
 
-    # sjekker om det er noen seter for Dash-8 100 
+    # sjekker om det er noen seter for Dash-8 100   
     cursor.execute("SELECT COUNT(*) FROM Sete WHERE flyTypeNavn = 'Dash-8 100'")
     seat_count = cursor.fetchone()[0]
     

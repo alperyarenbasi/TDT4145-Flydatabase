@@ -40,13 +40,6 @@ def main():
     ukedag = input("Oppgi ukedag (f.eks. mandag, tirsdag, ...): ").strip().lower()
     interesse = input("Er du interessert i 'avganger' eller 'ankomster'? ").strip().lower()
     
-    # Bygg spørringen ut fra brukerens valg.
-    # Her forutsettes at det finnes en tabell Flyrute med feltene:
-    # - rutenummer, ukedag, avgangstid, ankomsttid, 
-    #   og at det finnes en relasjonstabell RuteFlyplass med flyplassene ruten besøker.
-    #
-    # Det antas også at flyruten har et felt som indikerer hvilken flyplass
-    # som er avgangs- (f.eks. avgangsflyplass) eller ankomstflyplass (f.eks. ankomstflyplass).
     
     if interesse == "avganger":
         sql = """
@@ -59,6 +52,7 @@ def main():
             GROUP BY f.rutenummer, f.avgangstid
         """
         tid_label = "Avgangstid"
+        
     elif interesse == "ankomster":
         sql = """
             SELECT f.rutenummer, f.ankomsttid,

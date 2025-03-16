@@ -1,8 +1,152 @@
 import sqlite3
+from datetime import datetime
+
+"""
+Denne filen inneholder alle ekstra funksjoner som tilhører ulike brukertillfeller.
+
+"""
 
 
+#Funksjonalitet for å sette inn seter i Sete-tabellen. Tilhøre
+#Setelogikk fra vedlegg 2, grunnen til at denne er imeplementer som en for loop er at hvert sete behandles som egen entitet i databasen.
+#Hjelpemetode for å sette inn seter i Sete-tabellen
+def insert_seat(cursor, flyTypeNavn, radNr, seteBokstav, nodutgang):
+    """Setter inn et sete i Sete-tabellen"""
+    cursor.execute("""
+        INSERT INTO Sete (flyTypeNavn, radNr, seteBokstav, nodutgang)
+        VALUES (?, ?, ?, ?)
+    """, (flyTypeNavn, radNr, seteBokstav, nodutgang))
 
-#-----------------TASK 8 ?----------------------#
+#Hovedmetode for å generere seter for ulike flytyper
+def generate_seats(cursor):
+    """Genererer og setter inn seter for ulike flytyper"""
+    
+    # Boeing 737 800 (note the space instead of hyphen)
+    for rad in range(1, 32):  # Rader 1 til 31
+        for sete in "ABCDEF":
+            nodutgang = (rad == 13)  # Rad 13 er nødutgang
+            insert_seat(cursor, "Boeing 737 800", rad, sete, nodutgang)
+
+    # Airbus A320neo (lowercase 'a')
+    for rad in range(1, 31):  # Rader 1 til 30
+        for sete in "ABCDEF":
+            nodutgang = (rad in [11, 12])  # Rader 11 og 12 er nødutganger
+            insert_seat(cursor, "Airbus A320neo", rad, sete, nodutgang)
+
+    # Dash-8 100
+    insert_seat(cursor, "Dash-8 100", 1, "C", False)
+    insert_seat(cursor, "Dash-8 100", 1, "D", False)
+    
+    for rad in range(2, 11):  # Rader 2 til 10
+        for sete in "ABCD":
+            nodutgang = (rad == 5)  # Rad 5 er nødutgang
+            insert_seat(cursor, "Dash-8 100", rad, sete, nodutgang)
+
+def hent_flyplasser(cursor):
+    """
+    Henter en liste over flyplassnavn fra tabellen Flyplass.
+    Forutsetter at tabellen Flyplass har en kolonne 'navn'.
+    """
+    cursor.execute("SELECT flyPlassNavn FROM Flyplass")
+    return [row[0] for row in cursor.fetchall()]
+
+def vis_flyplasser(airports):
+    """Viser en liste med tilgjengelige flyplasser."""
+    print("Tilgjengelige flyplasser:")
+    for idx, airport in enumerate(airports, start=1):
+        print(f"{idx}. {airport}")
+
+# Legg til en funksjon for å konvertere ukedag til nummer (Hjelpefunksjon for tilfelle 6)
+def ukedag_til_nummer(ukedag):
+    ukedager = ["mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag"]
+    if ukedag in ukedager:
+        return ukedager.index(ukedag) + 1
+    else:
+        return None  # Hvis ukedag ikke er gyldig
+
+def tilfelle6main(cur):
+    """
+    Hovedfunksjon for tilfelle 6 som lar brukeren velge en flyplass, ukedag og 
+    om de er interessert i avganger eller ankomster.
+    """
+    # Hent og vis tilgjengelige flyplasser
+    flyplasser = hent_flyplasser(cur)
+    if not flyplasser:
+        print("Ingen flyplasser funnet i databasen.")
+        return
+    vis_flyplasser(flyplasser)
+    
+    # La brukeren velge flyplass
+    valg = input("Velg flyplassnummer (eller skriv navnet direkte): ").strip()
+    if valg.isdigit():
+        index = int(valg) - 1
+        if index < 0 or index >= len(flyplasser):
+            print("Ugyldig valg.")
+            return
+        valgt_flyplass = flyplasser[index]
+    else:
+        valgt_flyplass = valg
+    
+    # Spør om ukedag og interesse (avganger eller ankomster)
+    ukedag = input("Oppgi ukedag (f.eks. mandag, tirsdag, ...): ").strip().lower()
+    interesse = input("Er du interessert i 'avganger' eller 'ankomster'? ").strip().lower()
+    
+    ukedag_nummer = ukedag_til_nummer(ukedag)
+    if ukedag_nummer is None:
+        print("Ugyldig ukedag.")
+        return
+
+    if interesse == "avganger":
+        sql = """
+            SELECT dr.flyRuteNr, 
+                dr.avgangstid AS Avgangstid, 
+                dr.ankomsttid AS Ankomsttid, 
+                GROUP_CONCAT(fp.flyPlassNavn, ' -> ') AS stopp
+            FROM Delreise AS dr
+            INNER JOIN RuteTil AS r ON dr.delStartFlyplassKode = r.fraFlyplassKode
+            INNER JOIN Flyplass fp ON fp.flyPlassKode = r.fraFlyplassKode
+            INNER JOIN Flyrute fr ON dr.flyRuteNr = fr.flyRuteNr
+            WHERE fr.startFlyplassKode = ?
+            AND INSTR(fr.ukedagsKode, ?) > 0
+            GROUP BY dr.flyRuteNr;
+        """
+        tid_label = "Avgangstid"
+        
+    elif interesse == "ankomster":
+        sql = """
+            SELECT dr.flyRuteNr, 
+                dr.avgangstid AS Avgangstid, 
+                dr.ankomsttid AS Ankomsttid, 
+                GROUP_CONCAT(fp.flyPlassNavn, ' -> ') AS stopp
+            FROM Delreise AS dr
+            INNER JOIN RuteFra AS r ON dr.delSluttFlyplassKode = r.tilFlyplassKode
+            INNER JOIN Flyplass fp ON fp.flyPlassKode = r.tilFlyplassKode
+            INNER JOIN Flyrute fr ON dr.flyRuteNr = fr.flyRuteNr
+            GROUP BY dr.flyRuteNr;
+        """
+
+        #WHERE fr.sluttFlyplassKode = ?
+        #AND INSTR(fr.ukedagsKode, ?) > 0
+        tid_label = "Ankomsttid"
+        
+    else:
+        print("Ugyldig valg. Skriv 'avganger' eller 'ankomster'.")
+        return
+
+    # Utfør spørringen med brukerens valg som parametre
+    cur.execute(sql)
+
+    flyruter = cur.fetchall()
+
+    if flyruter:
+        print(f"\nFlyruter for {valgt_flyplass} på {ukedag}:")
+        for rute in flyruter:
+            rutenummer, tid, stopp = rute
+            print(f"Rutenummer: {rutenummer} | {tid_label}: {tid} | Flyplasser: {stopp}")
+    else:
+        print("Ingen flyruter funnet for dine kriterier.")
+
+#Brukstilfelle 8 
 """Henter planlagte flyvninger for en spesifikk dato."""
 def get_available_flights(cursor, date_str):
     """Henter planlagte flyvninger for en spesifikk dato"""
@@ -18,17 +162,6 @@ def get_available_flights(cursor, date_str):
         WHERE flystatus = 'planned' AND dato = ?
     """, (date_str,))
     return cursor.fetchall()
-
-# Eksempel på bruk:
-user_date = input("Angi dato (YYYY-MM-DD): ")
-available_flights = get_available_flights(cur, user_date)
-if available_flights:
-    for flight in available_flights:
-        print(flight)
-else:
-    print("Ingen planlagte flyvninger funnet for denne datoen.")
-
-
 
 def choose_flight(flights):
     """Lar brukeren velge en flyvning fra en liste"""
@@ -142,36 +275,3 @@ def run_sql_script(filename, cursor, connection):
     print(f"SQL-scriptet '{filename}' er kjørt, og databasen er opprettet/oppdatert.")
 
 
-
-
-#---------------------------------------#
-def insert_seat(cursor, flyTypeNavn, radNr, seteBokstav, nodutgang):
-    """Setter inn et sete i Sete-tabellen"""
-    cursor.execute("""
-        INSERT INTO Sete (flyTypeNavn, radNr, seteBokstav, nodutgang)
-        VALUES (?, ?, ?, ?)
-    """, (flyTypeNavn, radNr, seteBokstav, nodutgang))
-
-def generate_seats(cursor):
-    """Genererer og setter inn seter for ulike flytyper"""
-    
-    # Boeing 737 800 (note the space instead of hyphen)
-    for rad in range(1, 32):  # Rader 1 til 31
-        for sete in "ABCDEF":
-            nodutgang = (rad == 13)  # Rad 13 er nødutgang
-            insert_seat(cursor, "Boeing 737 800", rad, sete, nodutgang)
-
-    # Airbus A320neo (lowercase 'a')
-    for rad in range(1, 31):  # Rader 1 til 30
-        for sete in "ABCDEF":
-            nodutgang = (rad in [11, 12])  # Rader 11 og 12 er nødutganger
-            insert_seat(cursor, "Airbus A320neo", rad, sete, nodutgang)
-
-    # Dash-8 100
-    insert_seat(cursor, "Dash-8 100", 1, "C", False)
-    insert_seat(cursor, "Dash-8 100", 1, "D", False)
-    
-    for rad in range(2, 11):  # Rader 2 til 10
-        for sete in "ABCD":
-            nodutgang = (rad == 5)  # Rad 5 er nødutgang
-            insert_seat(cursor, "Dash-8 100", rad, sete, nodutgang)

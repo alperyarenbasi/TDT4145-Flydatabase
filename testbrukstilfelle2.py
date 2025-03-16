@@ -1,24 +1,7 @@
-"""
-Basert på de testene vi gjør her så ser vi blant annet følgende output:
-
-Advarsel: Klarte å sette inn et svært langt regnr, sjekk om dette er ønsket!
-Advarsel: Klarte å sette inn et fly med aarDrift før flytypen ble produsert!
-Advarsel: Klarte å sette inn en flytype med negativt antall rader!
-Advarsel: Klarte å sette inn en flytype med sisteProduksjonAAr før forsteProduksjonAAr!
-Advarsel: Klarte å sette inn et fly med fremtidig aarDrift (2026)! Er dette OK?
-Advarsel: Klarte å endre flytype til en fra en annen produsent!
-Advarsel: Klarte å sette inn to fly med samme serienummer!
-Advarsel: Klarte å sette inn en nasjonalitet med tom streng!
-
-Mange av disse advarselene er ting som ideelt sett bør legges til som constranints i databasen
-Vi har valgt å ikke gjøre noe med disse svakhetene siden SÅ LENGE VI GIR RIKTIG INPUT HAR SVAKHETENE INGENTING Å SI 
-Ingen av testene oppdaget FEIL men heller svakheter i databasen. Siden vi ikke har oppdaget feil er det ikke noe vi ønsker å gå videre med  
-Ideelt sett er dog dette noe vi konne sett nærmere på 
-"""
 
 import sqlite3
-from flydatabase import run_sql_script
-
+from ExtraFunctions import run_sql_script
+from BrukerTilfeller import tilfelle1, tilfelle2
 # Koble til SQLite-database
 conn = sqlite3.connect("Test.db")
 cur = conn.cursor()
@@ -26,7 +9,8 @@ cur = conn.cursor()
 # Kjør SQL-skriptet med dataene
 run_sql_script("Flydatabase.sql", cur, conn)
 #run_sql_script("brukstilfelle1.sql", cur, conn)
-run_sql_script("brukstilfelle2.sql", cur, conn)
+tilfelle1(cur)
+tilfelle2(cur)
 
 # TEST 1: Sjekk at tabellene er fylt korrekt (baseline)
 cur.execute("SELECT COUNT(*) FROM Flyselskap;")

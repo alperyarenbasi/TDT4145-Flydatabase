@@ -10,10 +10,7 @@ databaseFile = "Flydatabase.db"
 if  os.path.exists(databaseFile):
     conn = sqlite3.connect(databaseFile)
     cur = conn.cursor()
-
     ef.printTabell(cur, "Flyplass")
-    
-    
     conn.close()
 
 else:

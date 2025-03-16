@@ -56,7 +56,10 @@ CREATE TABLE Flytype (
     CONSTRAINT FK_Flytype_Flyprodusent
         FOREIGN KEY (FlytypeProdusent) REFERENCES Flyprodusent(produsentNavn)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        ON DELETE RESTRICT,
+    CONSTRAINT CHK_Flytype_antallRader CHECK (antallRader >= 0), 
+    CONSTRAINT CHK_Flytype_produksjonAAr CHECK (sisteProduksjonAAr IS NULL OR sisteProduksjonAAr >= forsteProduksjonAAr)
+
 );
 
 -- 5) SETE
@@ -92,14 +95,22 @@ CREATE TABLE BenytterType (
         ON DELETE CASCADE
 );
 
+
 -- 7) FLY
 CREATE TABLE Fly (
-    regnr              VARCHAR(50)  NOT NULL,
+    regnr              VARCHAR(15)  NOT NULL,
     navn               VARCHAR(100) NULL,
     aarDrift           INT          NOT NULL,
     serienr            VARCHAR(50)  NOT NULL,
     tilhorerSelskapID  VARCHAR(3)   NULL,
-    produsentNavn      VARCHAR(100) NOT NULL,
+
+    /*
+    Vi har i denne delen av oppgaven funnet ut at dette attributtet ikke er nødvendig siden 
+    flytype har en produsent og denne infoen kan finnes ved hjelp av join
+    Vi har derfor kommentert ut dette attributtet 
+    */
+    --produsentNavn      VARCHAR(100) NULL, 
+
     erType             VARCHAR(100) NOT NULL,
     CONSTRAINT PK_Fly
         PRIMARY KEY (regnr),
@@ -107,15 +118,21 @@ CREATE TABLE Fly (
         FOREIGN KEY (tilhorerSelskapID) REFERENCES Flyselskap(flyselskapID)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
+    /*
+    Vi trenger ikke lenger denne constraint en 
     CONSTRAINT FK_Fly_Flyprodusent
         FOREIGN KEY (produsentNavn) REFERENCES Flyprodusent(produsentNavn)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
+    */
     CONSTRAINT FK_Fly_Flytype
         FOREIGN KEY (erType) REFERENCES Flytype(flytypeNavn)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
+    
 );
+
+
 
 -- 8) RUTETIL : "Oversikt over hvilke flyplasser det er direkte forbindelser mellom"
 CREATE TABLE RuteTil (
@@ -410,7 +427,9 @@ CREATE TABLE Nasjonalitet (
     CONSTRAINT FK_Nasjonalitet_Flyprodusent
         FOREIGN KEY (produsentNavn) REFERENCES Flyprodusent(produsentNavn)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT CHK_Nasjonalitet_NotEmpty CHECK (LENGTH(nasjonalitet) > 0) -- Sjekk at nasjonalitet ikke er tom
+
 );
 
 
@@ -438,3 +457,4 @@ CREATE TABLE Prisliste (
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 );
+

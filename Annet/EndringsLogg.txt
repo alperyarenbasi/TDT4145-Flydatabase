@@ -7,4 +7,5 @@ ENDRINGSLOGG:
 5. flyselskapID har blitt endret til VARCHAR(3) (Fra type INT) pga. oppgaveteksten. Denne endringen hr gjort at referanser til denne tabellen, som eksø. gjøres i fly tabellen også endrer datatype 
 6. Vi har implementer autoincrement der vi har sett at dette er nødvendig
 7. Gruppen er klar over at det er en del Constraints com ideelt sett slutte vært implementert. Vi har valgt å fokusere på de vi mener er de viktigste. Vi har prrøvd å teste for svakheter og prøvd å gjøre noe med disse
+8. Fly trenger ikke produksentnavn fordi flytype allerede har produsentNavn
 
