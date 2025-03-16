@@ -275,3 +275,8 @@ def tilfelle7(cursor):
         print(f"Database error: {e}")
         # Rollback in case of error
         cursor.execute("ROLLBACK")
+
+
+def tilfelle8(cursor):
+    #IMPLEMENTER DENNE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    return None

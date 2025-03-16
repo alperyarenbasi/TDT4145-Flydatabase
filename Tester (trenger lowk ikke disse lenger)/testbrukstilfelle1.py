@@ -1,5 +1,5 @@
 import sqlite3
-from flydatabase import run_sql_script
+from InitializeDB import run_sql_script
 
 # Koble til SQLite-database
 conn = sqlite3.connect("Test.db")

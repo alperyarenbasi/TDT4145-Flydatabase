@@ -17,7 +17,7 @@ Ideelt sett er dog dette noe vi konne sett nærmere på
 """
 
 import sqlite3
-from flydatabase import run_sql_script
+from InitializeDB import run_sql_script
 
 # Koble til SQLite-database
 conn = sqlite3.connect("Test.db")
