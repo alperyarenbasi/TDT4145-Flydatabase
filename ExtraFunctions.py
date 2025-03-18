@@ -205,45 +205,60 @@ def tilfelle6main(cur):
     
 
 #Brukstilfelle 8 
-"""Henter planlagte flyvninger for en spesifikk dato."""
-def get_available_flights(cursor, date_str):
-    """Henter planlagte flyvninger for en spesifikk dato"""
-    try:
-        # Validerer at datoen er i riktig format (YYYY-MM-DD)
-        datetime.strptime(date_str, '%Y-%m-%d') #Skal forhindre SQL injections 
-    except ValueError:
-        print("Ugyldig datoformat. Bruk YYYY-MM-DD.")
-        return []
+def get_available_flights(cursor):
+    """Henter planlagte flyvninger for en spesifikk dato."""
 
+    #Denne SQL delen kan droppes når databasen er større / man er sikker på at det får fly hver dag 
     cursor.execute("""
-        SELECT * FROM FaktiskFlyvning 
+        SELECT Flyrute.flyRuteNr, FaktiskFlyvning.dato, Flyrute.startFlyplassKode, Flyrute.endeFlyplassKode, FaktiskFlyvning.bruktFly
+        FROM FaktiskFlyvning INNER JOIN Flyrute ON FaktiskFlyvning.flyrutenummer = Flyrute.flyRuteNr 
+        WHERE flystatus = 'planned'
+        """)
+    print("Følgende flyvninger eksisterer tilgjengelige for booking. Velg en dato hvor en av disse flyene går:")
+    flights = cursor.fetchall()
+    for i, flight in enumerate(flights, start=1):
+        print(f"{i}: Flyrute {flight[0]}, Dato {flight[1]}, Fra: {flight[2]}, Til: {flight[3]}, Brukt Fly: {flight[4]}")
+
+    while True:
+        date_str = input("Oppgi dato (YYYY-MM-DD) eller 'quit' for å avslutte: ").strip()
+        if date_str.lower() == 'quit':
+            print("Avslutter...")
+            return []
+
+        try:
+            datetime.strptime(date_str, '%Y-%m-%d')
+            break
+        except ValueError:
+            print("Ugyldig datoformat. Bruk YYYY-MM-DD eller 'quit' for å avslutte.")
+
+    #UTNYTTER AT EN FLYRUTE FLYS MAKS EN GANG I DØGNET (dvs. TRENGER IKKE LØPENUMMER FOR Å IDENTIFISERE EN FLYVNING)
+    cursor.execute("""
+        SELECT Flyrute.flyRuteNr, FaktiskFlyvning.dato, Flyrute.startFlyplassKode, Flyrute.endeFlyplassKode, FaktiskFlyvning.bruktFly
+        FROM FaktiskFlyvning INNER JOIN Flyrute ON FaktiskFlyvning.flyrutenummer = Flyrute.flyRuteNr 
         WHERE flystatus = 'planned' AND dato = ?
     """, (date_str,))
-    return cursor.fetchall()
+
+    flights = cursor.fetchall()
+    return flights
 
 def choose_flight(flights):
-    """Lar brukeren velge en flyvning fra en liste"""
-    if not flights:
-        print("Ingen flyvninger tilgjengelig.")
-        return None
-
-    print("Velg en flyvning fra listen:")
+    """Lar brukeren velge en flyvning fra en liste."""
+    print("\nVelg en flyvning fra listen:")
     for i, flight in enumerate(flights, start=1):
-        print(f"{i}: {flight}")
-    
-    try:
-        choice = int(input("Skriv nummeret på flyvningen du vil velge: "))
-        if 1 <= choice <= len(flights):
-            return flights[choice - 1]
-        else:
-            print("Ugyldig valg.")
-            return None
-    except ValueError:
-        print("Ugyldig input. Vennligst skriv et tall.")
-        return None
+        print(f"{i}: Flyrute {flight[0]}, Dato {flight[1]}, Fra: {flight[2]}, Til: {flight[3]}, Brukt Fly: {flight[4]}")
 
-def get_available_seats(cursor, flyrutenummer, lopenr):
-    """Henter tilgjengelige seter for en bestemt flyvning"""
+    while True:
+        try:
+            choice = int(input("Skriv nummeret på flyvningen du vil velge: "))
+            if 1 <= choice <= len(flights):
+                return flights[choice - 1]  # Returnerer valgt flyvning
+            else:
+                print("Ugyldig valg. Velg et nummer fra listen.")
+        except ValueError:
+            print("Ugyldig input. Vennligst skriv et tall.")
+
+def get_available_seats(cursor, flyrutenummer, dato):
+    """Henter tilgjengelige seter for en bestemt flyvning basert på rutenummer og dato."""
     cursor.execute("""
         SELECT s.flyTypeNavn, s.radNr, s.seteBokstav
         FROM Sete s
@@ -253,10 +268,50 @@ def get_available_seats(cursor, flyrutenummer, lopenr):
             WHERE db.BooketflyTypeNavn = s.flyTypeNavn
               AND db.BooketradNr = s.radNr
               AND db.Booketsetebokstav = s.seteBokstav
-              AND db.Flyrutenummer = ? AND db.lopenr = ?
+              AND db.Flyrutenummer = ? 
+              AND db.dato = ?
         )
-    """, (flyrutenummer, lopenr))
-    return cursor.fetchall()
+    """, (flyrutenummer, dato))
+
+    seats = cursor.fetchall()
+
+    if seats:
+        print("\nTilgjengelige seter for flyrute", flyrutenummer, "på dato", dato, ":")
+        for seat in seats:
+            print(f"Flytype: {seat[0]}, Rad: {seat[1]}, Sete: {seat[2]}")
+    else:
+        print("Ingen ledige seter på denne flyvningen.")
+
+    return seats
+
+
+def tilfelle8main(cur):
+    """Hovedfunksjonen som samler hele prosessen for å finne og velge en flyvning."""
+    print("\n*** FLYRUTE BOOKING SYSTEM ***\n")
+    
+    flights = get_available_flights(cur)
+    if not flights:
+        print("Ingen tilgjengelige flyvninger. Avslutter programmet.")
+        return  # Avslutter hvis ingen flyvninger finnes
+
+    selected_flight = choose_flight(flights)
+    if not selected_flight:
+        print("Ingen flyvning valgt. Avslutter programmet.")
+        return  # Avslutter hvis ingen flyvning er valgt
+
+    # Henter nødvendige detaljer fra den valgte flyvningen
+    flyrutenummer, dato, start, destinasjon, brukt_fly = selected_flight  
+
+    print(f"\nDu har valgt flyrute {flyrutenummer} fra {start} til {destinasjon} den {dato}. Brukt fly: {brukt_fly}\n")
+
+    # Henter ledige seter for valgt flyvning
+    available_seats = get_available_seats(cur, flyrutenummer, dato)
+
+    if not available_seats:
+        print("\nDet er ingen ledige seter på denne flyvningen. Vennligst prøv en annen flyvning.\n")
+        return  # Avslutter programmet hvis ingen seter er tilgjengelige
+
+    print("\n*** Slutt på programmet ***\n")
 
 
 
@@ -323,6 +378,7 @@ def printAllTables(cursor):
         filename: Navnet på SQL-filen som skal kjøres.
         cursor: En peker til databasen.
         connection: En peker til databasetilkoblingen."""
+
 def run_sql_script(filename, cursor, connection):
     """ Leser og kjører et SQL-script fra en fil. """
     with open(filename, "r") as file:

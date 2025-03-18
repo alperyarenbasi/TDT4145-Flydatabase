@@ -289,7 +289,3 @@ def tilfelle7(cursor):
         # Rollback in case of error
         cursor.execute("ROLLBACK")
 
-
-def tilfelle8(cursor):
-    #IMPLEMENTER DENNE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    return None

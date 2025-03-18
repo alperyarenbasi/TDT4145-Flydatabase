@@ -35,11 +35,12 @@ try:
     bt.tilfelle3(cur)
     bt.tilfelle4(cur)
     bt.tilfelle5(cur)
-    ef.tilfelle6main(cur)
+    #ef.tilfelle6main(cur)
     # TILFELLE 5 ER SQL SPØRRING. LEGGER IKKE DATA INN. DERMED IKKE MENINGEN Å KJØRE HER
     # TILFELLE 6 ER LEGGER IKKE INN DATA. DERMED IKKE MENINGEN Å KJØRE HER
     bt.tilfelle7(cur)
-                 
+    ef.tilfelle8main(cur)
+
     #bt.tilfelle7(cur)
     # opg 8 er gjort tror jeg. Tror den er i BrukerTilfeller.py
     conn.commit()           #Lagrer endringene. må gjøres for at endringene skal bli permanente
