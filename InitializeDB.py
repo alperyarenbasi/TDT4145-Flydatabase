@@ -34,6 +34,8 @@ try:
     ef.generate_seats(cur)
     bt.tilfelle3(cur)
     bt.tilfelle4(cur)
+    bt.tilfelle5(cur)
+    ef.tilfelle6main(cur)
     # TILFELLE 5 ER SQL SPØRRING. LEGGER IKKE DATA INN. DERMED IKKE MENINGEN Å KJØRE HER
     # TILFELLE 6 ER LEGGER IKKE INN DATA. DERMED IKKE MENINGEN Å KJØRE HER
     bt.tilfelle7(cur)

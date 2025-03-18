@@ -3,7 +3,6 @@ from datetime import datetime
 
 """
 Denne filen inneholder alle ekstra funksjoner som tilhører ulike brukertillfeller.
-
 """
 
 
@@ -43,26 +42,43 @@ def generate_seats(cursor):
             insert_seat(cursor, "Dash-8 100", rad, sete, nodutgang)
 
 def hent_flyplasser(cursor):
-    """
-    Henter en liste over flyplassnavn fra tabellen Flyplass.
-    Forutsetter at tabellen Flyplass har en kolonne 'navn'.
-    """
-    cursor.execute("SELECT flyPlassNavn FROM Flyplass")
-    return [row[0] for row in cursor.fetchall()]
+    cursor.execute("SELECT flyPlassKode, flyPlassNavn FROM Flyplass")
+    return {row[0]: row[1] for row in cursor.fetchall()}  # Returnerer en dictionary med kode som nøkkel og navn som verdi
 
 def vis_flyplasser(airports):
-    """Viser en liste med tilgjengelige flyplasser."""
+    """Viser en liste med tilgjengelige flyplasser og lar brukeren velge basert på flyplasskode."""
     print("Tilgjengelige flyplasser:")
-    for idx, airport in enumerate(airports, start=1):
-        print(f"{idx}. {airport}")
+    for code, name in airports.items():
+        print(f"{code}: {name}")
+    
+    while True:
+        valgt_kode = input("Velg en flyplass ved å skrive inn flyplasskoden eller skriv Q for å avslutte: ").strip().upper()
+        if valgt_kode in airports:
+            print(f"Du har valgt {airports[valgt_kode]} ({valgt_kode})")
+            return valgt_kode
+        elif valgt_kode == "Q":
+            return None
+        else:
+            print("Ugyldig kode, prøv igjen.")
 
 # Legg til en funksjon for å konvertere ukedag til nummer (Hjelpefunksjon for tilfelle 6)
-def ukedag_til_nummer(ukedag):
-    ukedager = ["mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag"]
-    if ukedag in ukedager:
-        return ukedager.index(ukedag) + 1
-    else:
-        return None  # Hvis ukedag ikke er gyldig
+def ukedag_til_nummer():
+    """Lar brukeren skrive inn en ukedag og returnerer tilsvarende nummer. Brukeren kan skrive Q for å avslutte."""
+    ukedager = {
+        "mandag": 1, "tirsdag": 2, "onsdag": 3, "torsdag": 4,
+        "fredag": 5, "lørdag": 6, "søndag": 7
+    }
+    
+    while True:
+        ukedag = input("Skriv inn en ukedag (f.eks. 'mandag') eller Q for å avslutte: ").strip().lower()
+        if ukedag in ukedager:
+            return ukedager[ukedag]
+        elif ukedag == "q":
+            return None
+        else:
+            print("Ugyldig input. Skriv en gyldig ukedag (f.eks. 'mandag') eller Q for å avslutte.")
+
+
 
 def tilfelle6main(cur):
     """
@@ -71,80 +87,122 @@ def tilfelle6main(cur):
     """
     # Hent og vis tilgjengelige flyplasser
     flyplasser = hent_flyplasser(cur)
-    if not flyplasser:
-        print("Ingen flyplasser funnet i databasen.")
+    valgt_flyplass = vis_flyplasser(flyplasser)
+    if valgt_flyplass is None:
         return
-    vis_flyplasser(flyplasser)
     
-    # La brukeren velge flyplass
-    valg = input("Velg flyplassnummer (eller skriv navnet direkte): ").strip()
-    if valg.isdigit():
-        index = int(valg) - 1
-        if index < 0 or index >= len(flyplasser):
-            print("Ugyldig valg.")
-            return
-        valgt_flyplass = flyplasser[index]
-    else:
-        valgt_flyplass = valg
+    ukedag_nummer = ukedag_til_nummer()
+    if ukedag_nummer is None:
+        return
     
-    # Spør om ukedag og interesse (avganger eller ankomster)
-    ukedag = input("Oppgi ukedag (f.eks. mandag, tirsdag, ...): ").strip().lower()
-    interesse = input("Er du interessert i 'avganger' eller 'ankomster'? ").strip().lower()
+    while True: 
+        interesse = input("Er du interessert i 'avganger' eller 'ankomster'? ").strip().lower()
+        if interesse in ["avganger", "ankomster"]:
+            break   
+        else:
+            print("Ugyldig input. Skriv 'avganger' eller 'ankomster'.")
     
-    ukedag_nummer = ukedag_til_nummer(ukedag)
     if ukedag_nummer is None:
         print("Ugyldig ukedag.")
         return
+    
+    print(ukedag_nummer)
+    print(valgt_flyplass)
+    print(interesse)
 
+    """
+    Vi har valgt å tolke oppgaveteksten slik at dersom vi har ruten TRD -> BGO -> SVG. Skal vi vil si søker opp BGO og avgang vise hele ruten. Dette er det vi syntes ga mest mening 
+
+    """
     if interesse == "avganger":
         sql = """
-            SELECT dr.flyRuteNr, 
-                dr.avgangstid AS Avgangstid, 
-                dr.ankomsttid AS Ankomsttid, 
-                GROUP_CONCAT(fp.flyPlassNavn, ' -> ') AS stopp
+            SELECT 
+                dr.flyRuteNr, 
+                MIN(dr.avgangstid) AS Avgangstid, --Grunnen til at vi bruker MIN og MAX er at vi har flere avganger og ankomster for samme flyrute 
+                MAX(dr.ankomsttid) AS Ankomsttid,
+                (
+                    SELECT GROUP_CONCAT(fp.flyPlassKode, ' -> ') --Concatenation av flyplasskoder med ' -> ' som separator
+                    FROM (
+                        SELECT DISTINCT flyplassKode --Vi hadde et problem med at mellomlandinger er både ankomst og avgang. Derfor bruker vi DISTINCT for å unngå duplikater
+                        FROM (
+                            SELECT dr1.delStartFlyplassKode AS flyplassKode, dr1.avgangstid AS tid
+                            FROM Delreise dr1
+                            WHERE dr1.flyRuteNr = dr.flyRuteNr
+                            
+                            UNION ALL --Vi bruker Union for å finne både delStart og delSlutt flyplasser 
+                            
+                            SELECT dr2.delSluttFlyplassKode AS flyplassKode, dr2.ankomsttid AS tid
+                            FROM Delreise dr2
+                            WHERE dr2.flyRuteNr = dr.flyRuteNr
+                        ) AS flyplass_stopp
+                        ORDER BY tid
+                    ) AS unique_stops
+                    INNER JOIN Flyplass fp ON fp.flyPlassKode = unique_stops.flyplassKode
+                ) AS stopp
             FROM Delreise AS dr
-            INNER JOIN RuteTil AS r ON dr.delStartFlyplassKode = r.fraFlyplassKode
-            INNER JOIN Flyplass fp ON fp.flyPlassKode = r.fraFlyplassKode
             INNER JOIN Flyrute fr ON dr.flyRuteNr = fr.flyRuteNr
-            WHERE fr.startFlyplassKode = ?
+            WHERE EXISTS ( 
+                SELECT 1
+                FROM Delreise dr_check
+                WHERE dr_check.flyRuteNr = dr.flyRuteNr
+                AND dr_check.delStartFlyplassKode = ? -- Her legger vi til parametert delStartFlyplassKode i neste spørring bruker vi endeFlyplass
+            )
+            AND INSTR(fr.ukedagsKode, ?) > 0 --Legger til ukedag parameter
+            GROUP BY dr.flyRuteNr;
+        """
+    else:  # ankomster
+        #Dette er i nesten det samme som forrige bare at vi sjekker for endeflyplass og ikke startflyplass. 
+        sql = """
+            SELECT 
+                dr.flyRuteNr, 
+                MIN(dr.avgangstid) AS Avgangstid, 
+                MAX(dr.ankomsttid) AS Ankomsttid,
+                (
+                    SELECT GROUP_CONCAT(fp.flyPlassKode, ' -> ')
+                    FROM (
+                        SELECT DISTINCT flyplassKode
+                        FROM (
+                            SELECT dr1.delStartFlyplassKode AS flyplassKode, dr1.avgangstid AS tid
+                            FROM Delreise dr1
+                            WHERE dr1.flyRuteNr = dr.flyRuteNr
+                            UNION ALL
+                            SELECT dr2.delSluttFlyplassKode AS flyplassKode, dr2.ankomsttid AS tid
+                            FROM Delreise dr2
+                            WHERE dr2.flyRuteNr = dr.flyRuteNr
+                        ) AS flyplass_stopp
+                        ORDER BY tid
+                    ) AS unique_stops
+                    INNER JOIN Flyplass fp ON fp.flyPlassKode = unique_stops.flyplassKode
+                ) AS stopp
+            FROM Delreise AS dr
+            INNER JOIN Flyrute fr ON dr.flyRuteNr = fr.flyRuteNr
+            WHERE EXISTS (
+                SELECT 1
+                FROM Delreise dr_check
+                WHERE dr_check.flyRuteNr = dr.flyRuteNr
+                AND dr_check.delSluttFlyplassKode = ?
+            )
             AND INSTR(fr.ukedagsKode, ?) > 0
             GROUP BY dr.flyRuteNr;
         """
-        tid_label = "Avgangstid"
-        
-    elif interesse == "ankomster":
-        sql = """
-            SELECT dr.flyRuteNr, 
-                dr.avgangstid AS Avgangstid, 
-                dr.ankomsttid AS Ankomsttid, 
-                GROUP_CONCAT(fp.flyPlassNavn, ' -> ') AS stopp
-            FROM Delreise AS dr
-            INNER JOIN RuteFra AS r ON dr.delSluttFlyplassKode = r.tilFlyplassKode
-            INNER JOIN Flyplass fp ON fp.flyPlassKode = r.tilFlyplassKode
-            INNER JOIN Flyrute fr ON dr.flyRuteNr = fr.flyRuteNr
-            GROUP BY dr.flyRuteNr;
-        """
+    # Utfør spørringen med parameterinnsetting
+    cur.execute(sql, (valgt_flyplass, str(ukedag_nummer)))
+    resultater = cur.fetchall()
 
-        #WHERE fr.sluttFlyplassKode = ?
-        #AND INSTR(fr.ukedagsKode, ?) > 0
-        tid_label = "Ankomsttid"
-        
-    else:
-        print("Ugyldig valg. Skriv 'avganger' eller 'ankomster'.")
+    # Sjekk om det finnes data
+    if not resultater:
+        print("Ingen treff for valgene dine.")
         return
 
-    # Utfør spørringen med brukerens valg som parametre
-    cur.execute(sql)
+    print("\nResultater:\n")
+    print(f"{'Flynr':<10} {'Avgang':<10} {'Ankomst':<10} {'Stopp':<30}")
+    print("-" * 70)
 
-    flyruter = cur.fetchall()
+    for row in resultater:
+        flynr, avgang, ankomst, stopp = row
+        print(f"{flynr:<10} {avgang:<10} {ankomst:<10} {stopp:<30}")
 
-    if flyruter:
-        print(f"\nFlyruter for {valgt_flyplass} på {ukedag}:")
-        for rute in flyruter:
-            rutenummer, tid, stopp = rute
-            print(f"Rutenummer: {rutenummer} | {tid_label}: {tid} | Flyplasser: {stopp}")
-    else:
-        print("Ingen flyruter funnet for dine kriterier.")
+    
 
 #Brukstilfelle 8 
 """Henter planlagte flyvninger for en spesifikk dato."""
