@@ -383,25 +383,6 @@ BEGIN
         END;
 END;
 
--- Trigger for å sjekke at flystatus er 'planned' før oppdatering av en DelBillett
-CREATE TRIGGER check_fly_status_before_update
-BEFORE UPDATE ON DelBillett
-FOR EACH ROW
-BEGIN
-    SELECT
-        CASE
-            WHEN NOT EXISTS (
-                SELECT 1
-                FROM FaktiskFlyvning 
-                WHERE flyrutenummer = NEW.Flyrutenummer 
-                  AND lopenr = NEW.lopenr 
-                  AND flyStatus = 'planned'
-            )
-            THEN RAISE(ABORT, 'Cannot update: Flight status is not planned')
-        END;
-END;
-
-
 
 -- 18) BAGASJE
 CREATE TABLE Bagasje (

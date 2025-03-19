@@ -199,13 +199,7 @@ def tilfelle5(cursor):
         print("{:<20} {:<25} {:<10}".format(row[0], row[1], row[2]))
 
 
-
-
-    
 def tilfelle7(cursor):
-    #Gjorde denne mer generell, slik at den kan kjøres flere ganger uten å få feil
-    #samt mer detaljert siden det er en del ting som må sjekkes før insert. Fikk feil mange ganger pga dette.
-
     # sjekker om det er noen seter for Dash-8 100   
     cursor.execute("SELECT COUNT(*) FROM Sete WHERE flyTypeNavn = 'Dash-8 100'")
     seat_count = cursor.fetchone()[0]

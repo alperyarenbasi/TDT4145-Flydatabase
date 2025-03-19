@@ -52,31 +52,31 @@ def vis_flyplasser(airports):
         print(f"{code}: {name}")
     
     while True:
-        valgt_kode = input("Velg en flyplass ved å skrive inn flyplasskoden eller skriv Q for å avslutte: ").strip().upper()
+        valgt_kode = input("Velg en flyplass ved å skrive inn flyplasskoden eller skriv m for å gå tilbake til hovedmenyen: ").strip().upper()
         if valgt_kode in airports:
             print(f"Du har valgt {airports[valgt_kode]} ({valgt_kode})")
             return valgt_kode
-        elif valgt_kode == "Q":
+        elif valgt_kode == "M":
             return None
         else:
             print("Ugyldig kode, prøv igjen.")
 
 # Legg til en funksjon for å konvertere ukedag til nummer (Hjelpefunksjon for tilfelle 6)
 def ukedag_til_nummer():
-    """Lar brukeren skrive inn en ukedag og returnerer tilsvarende nummer. Brukeren kan skrive Q for å avslutte."""
+    """Lar brukeren skrive inn en ukedag og returnerer tilsvarende nummer. Brukeren kan skrive m for å gå tilbake til hovedmenyen"""
     ukedager = {
         "mandag": 1, "tirsdag": 2, "onsdag": 3, "torsdag": 4,
         "fredag": 5, "lørdag": 6, "søndag": 7
     }
     
     while True:
-        ukedag = input("Skriv inn en ukedag (f.eks. 'mandag') eller Q for å avslutte: ").strip().lower()
+        ukedag = input("Skriv inn en ukedag (f.eks. 'mandag') eller M for å gå tilbake til hovedmenyen:").strip().lower()
         if ukedag in ukedager:
             return ukedager[ukedag]
-        elif ukedag == "q":
+        elif ukedag == "m":
             return None
         else:
-            print("Ugyldig input. Skriv en gyldig ukedag (f.eks. 'mandag') eller Q for å avslutte.")
+            print("Ugyldig input. Skriv en gyldig ukedag (f.eks. 'mandag') eller M for å gå tilbake til hovedmenyen")
 
 
 
@@ -106,9 +106,6 @@ def tilfelle6main(cur):
         print("Ugyldig ukedag.")
         return
     
-    print(ukedag_nummer)
-    print(valgt_flyplass)
-    print(interesse)
 
     """
     Vi har valgt å tolke oppgaveteksten slik at dersom vi har ruten TRD -> BGO -> SVG. Skal vi vil si søker opp BGO og avgang vise hele ruten. Dette er det vi syntes ga mest mening 
@@ -231,7 +228,7 @@ def get_available_flights(cursor):
         except ValueError:
             print("Ugyldig datoformat. Bruk YYYY-MM-DD eller 'quit' for å avslutte.")
 
-    #UTNYTTER AT EN FLYRUTE FLYS MAKS EN GANG I DØGNET (dvs. TRENGER IKKE LØPENUMMER FOR Å IDENTIFISERE EN FLYVNING)
+
     cursor.execute("""
         SELECT Flyrute.flyRuteNr, FaktiskFlyvning.dato, Flyrute.startFlyplassKode, Flyrute.endeFlyplassKode, FaktiskFlyvning.bruktFly
         FROM FaktiskFlyvning INNER JOIN Flyrute ON FaktiskFlyvning.flyrutenummer = Flyrute.flyRuteNr 
@@ -257,32 +254,89 @@ def choose_flight(flights):
         except ValueError:
             print("Ugyldig input. Vennligst skriv et tall.")
 
-def get_available_seats(cursor, flyrutenummer, dato):
+def get_available_seats(cursor, flyrutenummer1, flyrutenummer2, dato):
     """Henter tilgjengelige seter for en bestemt flyvning basert på rutenummer og dato."""
     cursor.execute("""
+        -- Del 1: Alle seter for flytypen som brukes i flyruten
         SELECT s.flyTypeNavn, s.radNr, s.seteBokstav
         FROM Sete s
-        WHERE NOT EXISTS (
-            SELECT 1
-            FROM DelBillett db
-            WHERE db.BooketflyTypeNavn = s.flyTypeNavn
-              AND db.BooketradNr = s.radNr
-              AND db.Booketsetebokstav = s.seteBokstav
-              AND db.Flyrutenummer = ? 
-              AND db.dato = ?
-        )
-    """, (flyrutenummer, dato))
+        INNER JOIN Flyrute fr ON s.flyTypeNavn = fr.bruktFlyType
+        WHERE fr.flyRuteNr = ?
+
+        EXCEPT
+
+        -- Del 2: Bookede seter for den spesifikke flyvningen på den gitte datoen
+        SELECT db.BooketflyTypeNavn, db.BooketradNr, db.Booketsetebokstav
+        FROM DelBillett db
+        INNER JOIN FaktiskFlyvning ff ON db.Flyrutenummer = ff.flyrutenummer
+        WHERE ff.flyrutenummer = ? AND ff.dato = ? 
+
+    """, (flyrutenummer1, flyrutenummer2, dato))
 
     seats = cursor.fetchall()
 
     if seats:
-        print("\nTilgjengelige seter for flyrute", flyrutenummer, "på dato", dato, ":")
+        print("\nTilgjengelige seter for flyrute", flyrutenummer1, "på dato", dato, ":")
         for seat in seats:
             print(f"Flytype: {seat[0]}, Rad: {seat[1]}, Sete: {seat[2]}")
     else:
         print("Ingen ledige seter på denne flyvningen.")
 
     return seats
+
+
+def finn_ledige_seter(cur, flyRuteNr, dato):
+    query = """
+    SELECT 
+        dr.delreiseNr, 
+        s.flyTypeNavn, 
+        s.radNr, 
+        s.seteBokstav
+    FROM 
+        Delreise dr
+    INNER JOIN 
+        Flyrute fr ON dr.flyRuteNr = fr.flyRuteNr
+    INNER JOIN 
+        Sete s ON s.flyTypeNavn = fr.bruktFlyType
+    LEFT JOIN 
+        FlyvningSegment fs ON dr.flyRuteNr = fs.flyrutenummer 
+                          AND dr.delreiseNr = fs.flyvningsegmentnr
+    LEFT JOIN 
+        FaktiskFlyvning ff ON fs.flyrutenummer = ff.flyrutenummer 
+                           AND fs.lopenr = ff.lopenr
+    LEFT JOIN 
+        DelBillett db ON fs.flyrutenummer = db.Flyrutenummer 
+                     AND fs.lopenr = db.lopenr 
+                     AND fs.flyvningsegmentnr = db.flyvningsegmentnr 
+                     AND s.flyTypeNavn = db.BooketflyTypeNavn 
+                     AND s.radNr = db.BooketradNr 
+                     AND s.seteBokstav = db.Booketsetebokstav
+    WHERE 
+        fr.flyRuteNr = ? 
+        AND ff.dato = ? 
+        AND db.billettID IS NULL
+    ORDER BY 
+        dr.delreiseNr, s.radNr, s.seteBokstav;
+    """
+    cur.execute(query, (flyRuteNr, dato))
+    resultater = cur.fetchall()
+    if not resultater:
+            print("\nDet er ingen ledige seter på denne flyvningen.\n")
+            return
+        
+    # Print ledige seter, gruppert etter delflyvning
+    print("\nLedige seter for flyvning:\n")
+    
+    forrige_delreise = None
+    for sete in resultater:
+        delreise_nr, flytype, rad, bokstav = sete
+        if delreise_nr != forrige_delreise:
+            print(f"\nDelflyvning {delreise_nr}:")
+            forrige_delreise = delreise_nr
+        print(f"  Flytype: {flytype}, Rad: {rad}, Sete: {bokstav}")
+    
+    return resultater
+
 
 
 def tilfelle8main(cur):
@@ -305,8 +359,9 @@ def tilfelle8main(cur):
     print(f"\nDu har valgt flyrute {flyrutenummer} fra {start} til {destinasjon} den {dato}. Brukt fly: {brukt_fly}\n")
 
     # Henter ledige seter for valgt flyvning
-    available_seats = get_available_seats(cur, flyrutenummer, dato)
+    #available_seats = get_available_seats(cur, flyrutenummer, flyrutenummer, dato)
 
+    available_seats = finn_ledige_seter(cur, flyrutenummer, dato)
     if not available_seats:
         print("\nDet er ingen ledige seter på denne flyvningen. Vennligst prøv en annen flyvning.\n")
         return  # Avslutter programmet hvis ingen seter er tilgjengelige
