@@ -254,37 +254,6 @@ def choose_flight(flights):
         except ValueError:
             print("Ugyldig input. Vennligst skriv et tall.")
 
-def get_available_seats(cursor, flyrutenummer1, flyrutenummer2, dato):
-    """Henter tilgjengelige seter for en bestemt flyvning basert på rutenummer og dato."""
-    cursor.execute("""
-        -- Del 1: Alle seter for flytypen som brukes i flyruten
-        SELECT s.flyTypeNavn, s.radNr, s.seteBokstav
-        FROM Sete s
-        INNER JOIN Flyrute fr ON s.flyTypeNavn = fr.bruktFlyType
-        WHERE fr.flyRuteNr = ?
-
-        EXCEPT
-
-        -- Del 2: Bookede seter for den spesifikke flyvningen på den gitte datoen
-        SELECT db.BooketflyTypeNavn, db.BooketradNr, db.Booketsetebokstav
-        FROM DelBillett db
-        INNER JOIN FaktiskFlyvning ff ON db.Flyrutenummer = ff.flyrutenummer
-        WHERE ff.flyrutenummer = ? AND ff.dato = ? 
-
-    """, (flyrutenummer1, flyrutenummer2, dato))
-
-    seats = cursor.fetchall()
-
-    if seats:
-        print("\nTilgjengelige seter for flyrute", flyrutenummer1, "på dato", dato, ":")
-        for seat in seats:
-            print(f"Flytype: {seat[0]}, Rad: {seat[1]}, Sete: {seat[2]}")
-    else:
-        print("Ingen ledige seter på denne flyvningen.")
-
-    return seats
-
-
 def finn_ledige_seter(cur, flyRuteNr, dato):
     query = """
     SELECT 
@@ -335,7 +304,7 @@ def finn_ledige_seter(cur, flyRuteNr, dato):
             forrige_delreise = delreise_nr
         print(f"  Flytype: {flytype}, Rad: {rad}, Sete: {bokstav}")
     
-    return resultater
+    return 
 
 
 
@@ -362,9 +331,6 @@ def tilfelle8main(cur):
     #available_seats = get_available_seats(cur, flyrutenummer, flyrutenummer, dato)
 
     available_seats = finn_ledige_seter(cur, flyrutenummer, dato)
-    if not available_seats:
-        print("\nDet er ingen ledige seter på denne flyvningen. Vennligst prøv en annen flyvning.\n")
-        return  # Avslutter programmet hvis ingen seter er tilgjengelige
 
     print("\n*** Slutt på programmet ***\n")
 
