@@ -343,7 +343,7 @@ def tilfelle8main(cur):
         cursor: En peker til databasen.
         tabellnavn: Navnet på tabellen som skal skrives ut."""
 def printTabell(cursor, tabellnavn):
-    """Skriver ut innholdet i en spesifikk tabell."""
+    """Skriver ut innholdet i en spesifikk tabell på en oversiktlig måte."""
     try:
         cursor.execute(f"SELECT * FROM {tabellnavn};")
         rows = cursor.fetchall()
@@ -354,17 +354,37 @@ def printTabell(cursor, tabellnavn):
         # Hent kolonnenavn
         col_names = [desc[0] for desc in cursor.description]
 
-        # Formater utskrift
-        print(f"\nInnhold i tabellen '{tabellnavn}':")
-        print("-" * (len(tabellnavn) + 20))
-        print("\t".join(col_names))
-        print("-" * (len(tabellnavn) + 20))
+        # Finn maksimum bredde for hver kolonne
+        col_widths = [len(name) for name in col_names]
         for row in rows:
-            print("\t".join(str(value) for value in row))
-        print("-" * (len(tabellnavn) + 20))
+            for i, value in enumerate(row):
+                col_widths[i] = max(col_widths[i], len(str(value)))
+
+        # Formater utskrift
+        total_width = sum(col_widths) + len(col_widths) * 3 + 1  # Juster for rammer og mellomrom
+        separator = "-" * total_width
+
+        print(f"\nInnhold i tabellen '{tabellnavn}':")
+        print(separator)
+        
+        # Skriv ut overskrifter
+        header = "| " + " | ".join(
+            name.ljust(col_widths[i]) for i, name in enumerate(col_names)
+        ) + " |"
+        print(header)
+        print(separator)
+
+        # Skriv ut rader
+        for row in rows:
+            formatted_row = "| " + " | ".join(
+                str(value).ljust(col_widths[i]) for i, value in enumerate(row)
+            ) + " |"
+            print(formatted_row)
+        
+        print(separator)
+
     except sqlite3.Error as e:
         print(f"Feil ved henting av tabellen '{tabellnavn}': {e}")
-
 
 
 
